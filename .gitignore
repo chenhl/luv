@@ -48,3 +48,14 @@ tags                             # ctags index
 *.log                            # log files
 /tests_output/                   # custom test output directory
 /samples_output/                 # custom sample output directory
+
+
+#npm project files
+node_modules/
+dist/css/*.map
+
+#vscode mackbook files
+.DS_Store
+.vscode/
+
+
