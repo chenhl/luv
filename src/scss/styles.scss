@@ -91,7 +91,7 @@ $border-radius: .4rem;
 // Custom styles
 //
 
-@import "icon-list";
+// @import "icon-list";
 
 body {
   padding: 0.5rem;
@@ -113,4 +113,20 @@ body {
 .luv-bg-thin { 
   background: rgba(0, 0, 0, .4);
   color: #fff;
+}
+// 商品详情 图片sku的宽高 4:5 8:10
+.luv-sku-img { 
+  width: 64px;
+  height: 80px;
+
+  @include media-breakpoint-up(md) {
+    width: 72px;
+    height: 90px;
+  }
+
+  @include media-breakpoint-up(lg) {
+    width: 80px;
+    height: 100px;
+  }
+
 }
