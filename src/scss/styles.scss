@@ -54,7 +54,7 @@ $border-radius: .4rem;
 @import "bootstrap/scss/images";
 @import "bootstrap/scss/containers";
 @import "bootstrap/scss/grid";
-// @import "bootstrap/scss/tables";
+@import "bootstrap/scss/tables";
 @import "bootstrap/scss/forms";
 @import "bootstrap/scss/buttons";
 @import "bootstrap/scss/transitions";
@@ -80,8 +80,8 @@ $border-radius: .4rem;
 @import "bootstrap/scss/offcanvas"; // Requires transitions
 // @import "bootstrap/scss/placeholders";
 
-// Helpers
-// @import "bootstrap/scss/helpers";
+// Helpers 
+@import "bootstrap/scss/helpers"; // sticky-top, sticky-bottom
 
 // Utilities
 @import "bootstrap/scss/utilities/api";
@@ -93,9 +93,9 @@ $border-radius: .4rem;
 
 // @import "icon-list";
 
-body {
-  padding: 0.5rem;
-}
+// body {
+//   padding: 0.5rem;
+// }
 
 //手机版 Left menu
 .luv-left-header { 
@@ -138,4 +138,57 @@ body {
     height: 100px;
   }
 
+}
+
+/* 自定义 Bottom Sheet 动画 */
+@keyframes slideUpIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* 应用于 modal-dialog 控制整体移动 */
+.luv-bottom-sheet .modal-dialog {
+  margin: 0;
+  /* 移除默认过渡，避免冲突 */
+  transition: none !important;
+  /* 初始位置在屏幕下方 */
+  transform: translateY(100%);
+}
+
+/* 打开时触发动画 */
+.luv-bottom-sheet.fade.show .modal-dialog {
+  animation: slideUpIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 关闭时触发动画 */
+.luv-bottom-sheet.fade:not(.show) .modal-dialog {
+  animation: slideDownOut 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 背景遮罩样式优化 */
+.luv-bottom-sheet .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明黑 */
+  backdrop-filter: blur(2px); /* 可选：模糊背景 */
+}
+
+/* 顶部拖拽条样式 */
+.luv-bottom-sheet-dragger {
+  height: 5px;
+  cursor: grab;
+}
+.luv-bottom-sheet-dragger:active {
+  cursor: grabbing;
 }
