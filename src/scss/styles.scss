@@ -71,7 +71,7 @@ $border-radius: .4rem;
 // @import "bootstrap/scss/progress";
 // @import "bootstrap/scss/list-group";
 @import "bootstrap/scss/close";
-// @import "bootstrap/scss/toasts";
+@import "bootstrap/scss/toasts";
 @import "bootstrap/scss/modal"; // Requires transitions
 @import "bootstrap/scss/tooltip";
 @import "bootstrap/scss/popover";
@@ -100,15 +100,18 @@ $border-radius: .4rem;
 //手机版 Left menu
 .luv-left-header { 
   background-image: url('../images/bg-left-header.jpg');
-  background-size: 100% 100%;
+  background-size: cover;
+  background-position: center;
 }
 .luv-left-coupon { 
   background-image: url('../images/bg-left-coupon.png');
-  background-size: 100% 100%;
+  background-size: cover;
+  background-position: center;
 }
 .luv-left-affiliate { 
   background-image: url('../images/bg-left-affiliate.png');
-  background-size: 100% 100%;
+  background-size: cover;
+  background-position: center;
 }
 .luv-bg-thin { 
   background: rgba(0, 0, 0, .4);
