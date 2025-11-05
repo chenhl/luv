@@ -162,6 +162,9 @@ $border-radius: .4rem;
   }
 }
 
+.luv-bottom-sheet .modal-content{
+  max-height: 90%;
+}
 /* 应用于 modal-dialog 控制整体移动 */
 .luv-bottom-sheet .modal-dialog {
   margin: 0;
