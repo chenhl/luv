@@ -1,7 +1,15 @@
 从bootstrap的示例中拷贝
 https://github.com/twbs/examples/tree/main/webpack
 
+--------------
+webpack 负责定制bootstrap的样式
 
+npm install -g terser
+terser 负责压缩js 
+    terser --help
+    示例：
+    terser src/js/js.js -o dist/js/js.min.js
+    terser src/js/product.js -o dist/js/product.min.js
 
 -----------
 // load any GitHub release, commit, or branch
