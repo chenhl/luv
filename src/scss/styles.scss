@@ -42,6 +42,11 @@ $border-radius: .4rem;
 // 修改container边距
 $grid-gutter-width: 1.0rem;
 
+// $accordion-padding-y: 1rem;
+// $accordion-padding-x: 1rem;
+$accordion-body-padding-y: 0.5rem;
+$accordion-body-padding-x: 0.5rem;
+
 // Required
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/variables-dark";

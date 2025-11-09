@@ -21,6 +21,7 @@ https://cdn.jsdelivr.net/gh/chenhl/luv@main/dist/css/style.css
 ------------
 npm :
 https://cdn.jsdelivr.net/npm/luv-assets@latest/dist/css/style.css
+
 # 首次发布
 npm publish
 # 如果是 scoped package (如 @your-username/package-name)
