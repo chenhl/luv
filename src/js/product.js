@@ -1,3 +1,14 @@
+/**
+ * 这是原始文件，
+ * 
+ */
+
+/**
+ * 
+ * @param {string} product_spu product spu to save
+ * @param {number} maxHistoryLength max history length to keep
+ */
+
 function saveProductToLocalStorage(product_spu, maxHistoryLength = 30) {
     let productHistory = JSON.parse(localStorage.getItem(product_history_key)) || [];
     // product_spu exits
@@ -1107,7 +1118,7 @@ function paypalBuynowCreatePayment() {
                         timeout: 5000
                     })
                     .done(function(response) {
-                        if (response.html) { //除非你有 CSS 动画或布局延迟，否则 500ms 是多余的。
+                        if (response.html && response.html.trim() !== '') { //除非你有 CSS 动画或布局延迟，否则 500ms 是多余的。
                             $('#product-list-more').append(response.html);
                             lazyLoadInstance.update();
                             morePageNum = response.next_page;
@@ -1222,8 +1233,8 @@ function paypalBuynowCreatePayment() {
             $fieldset.find('.product-selected-attr-value-js')
                 .data('value', attrValue)
                 .data('value-for-restore', attrValue) // for restore after click custom size
-                .attr('data-value', attrValue) //test
-                .attr('data-value-for-restore', attrValue) // test
+                // .attr('data-value', attrValue) //test
+                // .attr('data-value-for-restore', attrValue) // test
                 .text($sku_map[attr]['values'][attrValue].value_name);
 
             //2. update product spu attr change event
@@ -1304,7 +1315,7 @@ function paypalBuynowCreatePayment() {
                 $fieldset.find('.d-flex button').removeClass('border-danger');
                 $fieldset.find('.product-selected-attr-value-js')
                     .data('value', '')
-                    .attr('data-value', '') // test
+                    // .attr('data-value', '') // test
                     .text('');
                 // hide error message
                 hideAttrErrorMessage(relatedAttr);
@@ -1332,8 +1343,8 @@ function paypalBuynowCreatePayment() {
                         .data('value', relatedAttrValue)
                         .data('value-for-restore', relatedAttrValue) // for restore after click custom size
 
-                        .attr('data-value', relatedAttrValue) // test
-                        .attr('data-value-for-restore', relatedAttrValue) // test
+                        // .attr('data-value', relatedAttrValue) // test
+                        // .attr('data-value-for-restore', relatedAttrValue) // test
 
                         .text($sku_map[relatedAttr]['values'][relatedAttrValue].value_name);
                 }
@@ -1491,7 +1502,6 @@ function paypalBuynowCreatePayment() {
                 return false;
             }
             // console.log(result);
-            // return false;//test
             loadProductDetail(result.data);
 
             //2 get trigger source

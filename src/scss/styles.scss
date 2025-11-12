@@ -39,11 +39,14 @@ $body-bg: #fff;
 $border-radius: .4rem;
 // $success: #7952b3;
 
-// 修改container边距
+// 修改container边距 row边距
 $grid-gutter-width: 1.0rem;
 
-// $accordion-padding-y: 1rem;
-// $accordion-padding-x: 1rem;
+//修改 accordion-body和button 边距
+// $accordion-padding-y: 0.5rem;
+// $accordion-padding-x: 0.5rem;
+
+//修改 accordion-body 边距
 $accordion-body-padding-y: 0.5rem;
 $accordion-body-padding-x: 0.5rem;
 
