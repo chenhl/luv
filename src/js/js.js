@@ -7,18 +7,59 @@ function isSurportedLoading() {
 }
 // console.log(isSurportedLoading()); // if true, loading attribute is supported
 
-/**
- * check if value is empty
- * @param {*} value - the value to check
- * @returns {boolean}
- */
-function isEmpty(value) {
-    if (value === null || value === undefined) return true;
-    if (typeof value === 'string') return value.trim() === '';
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === 'object') return Object.keys(value).length === 0;
-    return false;
+/////////////////// url操作 start
+// 废弃 获取当前页面URL的查询参数对象 
+function getUrlParams() {
+    // get current page URL
+    const url = new URL(window.location.href);
+    // create URLSearchParams
+    const searchParams = new URLSearchParams(url.search);
+    // return searchParams object;
+    return searchParams;
 }
+// 添加命名空间对象 对象字面量 
+// 无状态的工具函数集合
+// 所有方法都是纯函数：输入 → 输出，没有副作用
+// 不需要“实例”，全局只有一个共享对象
+const UrlUtils = {
+    // new URL 如果第一个参数不是完整的url，就需要第二个参数作为基准url
+    // 创建新的URL对象
+    create: (url, origin = window.location.origin) => new URL(url, origin), //ES6
+    // 获取当前URL对象的查询参数
+    getCurrentParams: () => new URLSearchParams(window.location.search), //现代 Web API
+    // 合并URL对象和参数对象
+    mergeParams: (url, paramsObj) => {
+        const newUrl = typeof url === 'string' ?
+            new URL(url, window.location.origin) : url;
+        Object.keys(paramsObj).forEach(key => {
+            if (paramsObj[key] !== undefined && paramsObj[key] !== null) {
+                newUrl.searchParams.set(key, paramsObj[key]);
+            }
+        });
+        return newUrl.toString();
+    },
+    // 构建查询字符串
+    buildQuery: (paramsObj) => {
+        const params = new URLSearchParams();
+        Object.keys(paramsObj).forEach(key => {
+            if (paramsObj[key] !== undefined && paramsObj[key] !== null) {
+                params.set(key, paramsObj[key]);
+            }
+        });
+        return params.toString();
+    },
+    // 从URL中获取指定参数值
+    getParam: (url, paramName) => {
+        try {
+            const urlObj = new URL(url, window.location.origin);
+            return urlObj.searchParams.get(paramName);
+        } catch (e) {
+            console.error('Invalid URL:', url);
+            return null;
+        }
+    }
+};
+/////////////////// url操作 end
 
 function webLoadScript(url, callback) {
     var script = document.createElement("script");
@@ -80,8 +121,7 @@ function getCookie(name) {
     }
 }
 
-function showToast(msg, element ) {
-    
+function showToast(msg, element) {
     $(element).find('.toast-body').text(msg);
     // const toastEl = document.getElementById('toast-js');
     const toastEl = $(element);
@@ -104,7 +144,7 @@ $(document).ready(function () {
             dataType: 'json',
             type: 'get',
             data: ajax_params,
-            url: memberCheckUrl, 
+            url: memberCheckUrl,
             success: function (data, textStatus) {
 
                 if (data.loginStatus) {
@@ -177,8 +217,7 @@ $(document).ready(function () {
 });
 
 
-/////////////////////////////// 
-
+/////////////////////////////// 本地搜索历史 ///////////////////////////////
 function isValidSearchKeyword(keyword, maxLength = 100) {
     // 
     keyword = keyword.trim();
@@ -374,22 +413,8 @@ function mergeLocalSearchHistory(serverHistory) {
 }
 
 
-function getUrlParams() {
-    // get current page URL
-    const url = new URL(window.location.href);
-    // create URLSearchParams
-    const searchParams = new URLSearchParams(url.search);
 
-    // loop all params
-    // for (const [key, value] of searchParams.entries()) {
-    //     // console.log(`Key: ${key}, Value: ${value}`);
-    // }
-
-    // return searchParams object;
-    return searchParams;
-}
-
-
+////////////////////////后台分销url操作
 /**
 * Checks if the provided URL is valid
 *
@@ -506,3 +531,105 @@ function add_query_arg(param, value, url) {
 
     return newString;
 }
+
+
+
+// /**
+//  * InfiniteLoader - 使用 jQuery 简化 DOM 操作，适用于已引入 jQuery 的现代移动项目
+//  */
+// class InfiniteLoader {
+//     constructor(options = {}) {
+//         this.options = $.extend({
+//             triggerSelector: '#load-trigger',
+//             containerSelector: '#product-list-more',
+//             loadingHtml: '<div id="loading-more" class="col-12 text-center my-3">Loading...</div>',
+//             noMoreHtml: '<div class="col-12 text-center text-muted infinite-loader-no-more">No more products.</div>',
+//             fetchData: null, // (page) => Promise or jqXHR
+//             onPageChange: () => {},
+//             maxPage: Infinity,
+//             rootMargin: '100px'
+//         }, options);
+
+//         this.pageNum = 1;
+//         this.isLoading = false;
+//         this.observer = null;
+
+//         this.init();
+//     }
+
+//     init() {
+//         const $trigger = $(this.options.triggerSelector);
+//         if ($trigger.length === 0 || !this.options.fetchData) return;
+
+//         // 所有现代手机都支持 IntersectionObserver
+//         this.observer = new IntersectionObserver(
+//             (entries) => {
+//                 if (entries[0].isIntersecting && !this.isLoading) {
+//                     this.loadMore();
+//                 }
+//             }, {
+//                 rootMargin: this.options.rootMargin
+//             }
+//         );
+//         this.observer.observe($trigger[0]); // 取原生 DOM 元素
+//     }
+
+//     loadMore() {
+//         if (this.pageNum > this.options.maxPage || this.isLoading) {
+//             this.stopAndShowNoMore();
+//             return;
+//         }
+
+//         this.isLoading = true;
+//         const $container = $(this.options.containerSelector);
+//         if ($container.length === 0) {
+//             this.isLoading = false;
+//             return;
+//         }
+
+//         $container.append(this.options.loadingHtml);
+
+//         const request = this.options.fetchData(this.pageNum);
+
+//         // 支持 jQuery Deferred（$.ajax）或原生 Promise
+//         $.when(request).done((response) => {
+//             $('#loading-more').remove();
+
+//             if (response && response.html && response.html.trim()) {
+//                 $container.append(response.html);
+//                 this.pageNum = response.next_page ?? (this.pageNum + 1);
+//                 this.options.onPageChange(this.pageNum - 1);
+
+//                 if (this.pageNum > this.options.maxPage) {
+//                     this.stopAndShowNoMore();
+//                 }
+//             } else {
+//                 this.stopAndShowNoMore();
+//             }
+//         }).fail((xhr, status, error) => {
+//             $('#loading-more').remove();
+//             console.error('Load more failed:', error);
+//             alert('加载失败，请重试。');
+//         }).always(() => {
+//             this.isLoading = false;
+//         });
+//     }
+
+//     stopAndShowNoMore() {
+//         if (this.observer) {
+//             const $trigger = $(this.options.triggerSelector);
+//             if ($trigger.length) this.observer.unobserve($trigger[0]);
+//             this.observer.disconnect();
+//             this.observer = null;
+//         }
+
+//         const $container = $(this.options.containerSelector);
+//         if ($container.length && !$container.find('.infinite-loader-no-more').length) {
+//             $container.append(this.options.noMoreHtml);
+//         }
+//     }
+
+//     destroy() {
+//         this.stopAndShowNoMore();
+//     }
+// }

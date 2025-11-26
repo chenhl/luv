@@ -1065,500 +1065,582 @@ function paypalBuynowCreatePayment() {
 
 
 // $(document).ready(function() {
-    $(function() {
+$(function () {
 
-        //////////////////// init ////////////////////
-        // lazyload();
-        const lazyLoadInstance = new LazyLoad({
-            // elements_selector: ".lazy"
-        });
-        //监听数据变化，自动刷新 UI
-        $(document).on('product:updated', (e, info) => {
-            renderProductUI(info);
-        });
-        // swiper https://v8.swiperjs.com/swiper-api#parameters
-        swiper = new Swiper('.swiper', {
-            autoplay: {
-                delay: 5000,
+    //////////////////// init ////////////////////
+    // lazyload();
+    const lazyLoadInstance = new LazyLoad({
+        // elements_selector: ".lazy"
+    });
+    //监听数据变化，自动刷新 UI
+    $(document).on('product:updated', (e, info) => {
+        renderProductUI(info);
+    });
+    // swiper https://v8.swiperjs.com/swiper-api#parameters
+    swiper = new Swiper('.swiper', {
+        autoplay: {
+            delay: 5000,
+        },
+        pagination: {
+            el: '.swiper-pagination',
+            type: 'fraction',
+            renderFraction: function (currentClass, totalClass) {
+                return '<span class="swiper-pagination-current">' + currentClass + '</span> / <span class="swiper-pagination-total">' + totalClass + '</span>';
             },
-            pagination: {
-                el: '.swiper-pagination',
-                type: 'fraction',
-                renderFraction: function(currentClass, totalClass) {
-                    return '<span class="swiper-pagination-current">' + currentClass + '</span> / <span class="swiper-pagination-total">' + totalClass + '</span>';
-                },
-            },
-        });
+        },
+    });
 
-        //1 product info for cat
-        initProductAttr();
-        //2 get brwosing history
-        fetchAndDisplayViewedProducts(historyUrl);
-        // save brwosing history
-        saveProductToLocalStorage(ecommerce_product.spu);
+    //1 product info for cat
+    initProductAttr();
+    //2 get brwosing history
+    fetchAndDisplayViewedProducts(historyUrl);
+    // save brwosing history
+    saveProductToLocalStorage(ecommerce_product.spu);
 
-        //3 more product dropload
-        if (products_more_count > products_more_count_min) {
-            // is loading (prevent repeat request)
-            let isLoading = false;
-            let morePageNum = 1;
+    //3 more product dropload
+    if (products_more_count > products_more_count_min) {
+        // 方案一：infiniteScroll
+        //////////////////infiniteScroll start
+        // search ajax 无限滚动 禁用history
+        // product load more ajax 无限滚动 禁用history
+        // category append 无限滚动 启用用history
 
-            function loadMoreProducts() {
-                if (isLoading) return;
-                isLoading = true;
-                // display loading more (optional)
-                $('#product-list-more').append('<div id="loading-more" class="col-12 text-center my-3">Loading...</div>');
-                $.ajax({
-                        url: productsMoreUrl,
-                        method: 'GET',
-                        data: {
-                            p: morePageNum
-                        },
-                        dataType: "json",
-                        timeout: 5000
-                    })
-                    .done(function(response) {
-                        if (response.html && response.html.trim() !== '') { //除非你有 CSS 动画或布局延迟，否则 500ms 是多余的。
-                            $('#product-list-more').append(response.html);
-                            lazyLoadInstance.update();
-                            morePageNum = response.next_page;
-                        } else {
-                            observer.unobserve(document.getElementById('load-trigger'));
-                            $('#product-list-more').append('<div class="col-12 text-center text-muted">No more products.</div>');
-                        }
-                    })
-                    .fail(function() {
-                        alert('Failed to load more products.');
-                    })
-                    .always(function() {
-                        $('#loading-more').remove();
-                        isLoading = false;
+        // 移动端专用无限滚动配置 - 支持 AJAX
+        $('#product-list-more').infiniteScroll({
+            // 路径配置
+            path: function () {
+                // console.log(url);
+                if (this.loadCount < products_more_max_page - 1) { // 限制加载次数
+                    return UrlUtils.mergeParams(productsMoreUrl, {
+                        p: this.loadCount + 1 // 从第一页开始
                     });
-            }
-            // 👇 关键：用 Lodash 节流（例如每 1000ms 最多触发一次）
-            const throttledLoad = _.throttle(function() {
-                if (!isLoading) {
-                    loadMoreProducts();
                 }
-            }, 1000, {
-                trailing: true
-            });
+            },
+            // append: '.col-6.col-sm-4.col-md-3.flex-shrink-0',
+            // // 历史记录管理（对SEO友好）
+            // history: 'replace', // push/replace
+            // historyTitle: false, // 不修改页面标题
 
-            // create Intersection Observer 
-            const observer = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    throttledLoad(); // 👈 调用节流函数
+            // 禁用自动追加，我们手动处理 AJAX 响应
+            append: false,
+            history: false,
+            // 设置响应体为 JSON 格式
+            responseBody: 'json', // 默认为 'text'
+            // AJAX 请求配置
+            fetchOptions: {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
-            }, {
-                rootMargin: '100px' // enter 100px before the bottom of the viewport
-            });
-            // listener for load trigger
-            if (document.getElementById('load-trigger')) {
-                observer.observe(document.getElementById('load-trigger'));
+            },
+            // 最后一页检查 https://infinite-scroll.com/options#checklastpage
+            checkLastPage: true,
+            // 滚动阈值
+            scrollThreshold: 100, // 滚动距离 100px
+
+            // 状态显示
+            status: '.page-load-status', // 显示加载状态
+
+            // 禁用自动加载 https://infinite-scroll.com/options#loadonscroll
+            // loadOnScroll: false, 
+            // 预填充 https://infinite-scroll.com/options#prefill 
+            prefill: false,
+            // 调试模式
+            debug: false,
+        });
+
+        // load处理 AJAX 响应 https://infinite-scroll.com/events#load
+        $('#product-list-more').on('load.infiniteScroll', function (event, body, path) {
+            // 处理从 AJAX 返回的 JSON 数据
+            if (body && body.html && body.html.trim() !== '') { // 如果有商品数据
+                // 手动追加 HTML 内容
+                $(this).append(body.html);
+                // 更新懒加载
+                if (lazyLoadInstance) {
+                    lazyLoadInstance.update();
+                }
+                // console.log('Loaded page via AJAX:', path);
             }
+        });
+        // 错误处理
+        $('#product-list-more').on('error.infiniteScroll', function (event, error, path) {
+            // console.error('Failed to load page via AJAX:', path, error);
+            alert('Failed to load more products.');
+        });
+
+        // append事件处理 https://infinite-scroll.com/events#append
+        $('#product-list-more').on('append.infiniteScroll', function (event, body, path, items) {
+            // console.log(`Appended ${items.length} items from ${path}`);
+        });
+        // 最后一页处理
+        $('#product-list-more').on('last.infiniteScroll', function () {
+            // console.log('Reached the last page via AJAX');
+        });
+        //////////////////infiniteScroll end
+
+        // // 方案二：自定义。Intersection Observer
+        // // is loading (prevent repeat request)
+        // let isLoading = false;
+        // let morePageNum = 1;
+
+        // function loadMoreProducts() {
+        //     if (isLoading) return;
+        //     isLoading = true;
+        //     // display loading more (optional)
+        //     $('#product-list-more').append('<div id="loading-more" class="col-12 text-center my-3">Loading...</div>');
+        //     $.ajax({
+        //         url: productsMoreUrl,
+        //         method: 'GET',
+        //         data: {
+        //             p: morePageNum
+        //         },
+        //         dataType: "json",
+        //         timeout: 5000
+        //     })
+        //         .done(function (response) {
+        //             if (response.html && response.html.trim() !== '') { //除非你有 CSS 动画或布局延迟，否则 500ms 是多余的。
+        //                 $('#product-list-more').append(response.html);
+        //                 lazyLoadInstance.update();
+        //                 morePageNum = response.next_page;
+        //             } else {
+        //                 observer.unobserve(document.getElementById('load-trigger'));
+        //                 $('#product-list-more').append('<div class="col-12 text-center text-muted">No more products.</div>');
+        //             }
+        //         })
+        //         .fail(function () {
+        //             alert('Failed to load more products.');
+        //         })
+        //         .always(function () {
+        //             $('#loading-more').remove();
+        //             isLoading = false;
+        //         });
+        // }
+        // // 👇 关键：用 Lodash 节流（例如每 1000ms 最多触发一次）
+        // const throttledLoad = _.throttle(function () {
+        //     if (!isLoading) {
+        //         loadMoreProducts();
+        //     }
+        // }, 1000, {
+        //     trailing: true
+        // });
+
+        // // create Intersection Observer 
+        // const observer = new IntersectionObserver((entries) => {
+        //     if (entries[0].isIntersecting) {
+        //         throttledLoad(); // 👈 调用节流函数
+        //     }
+        // }, {
+        //     rootMargin: '100px' // enter 100px before the bottom of the viewport
+        // });
+        // // listener for load trigger
+        // if (document.getElementById('load-trigger')) {
+        //     observer.observe(document.getElementById('load-trigger'));
+        // }
+    }
+    // 监听尺码表手风琴的展开事件
+    $('#panelsStayOpen-sizeChart').on('show.bs.collapse', function () {
+        // 只在第一次展开时渲染数据
+        if (!$(this).data('rendered')) {
+            renderSizeChartEle();
+            $(this).data('rendered', true);
         }
-        // 监听尺码表手风琴的展开事件
-        $('#panelsStayOpen-sizeChart').on('show.bs.collapse', function() {
-            // 只在第一次展开时渲染数据
-            if (!$(this).data('rendered')) {
-                renderSizeChartEle();
-                $(this).data('rendered', true);
-            }
-        });
+    });
 
-        let currentUnit = default_size_unit;
+    let currentUnit = default_size_unit;
 
-        function switchSizeUnit(unit) {
-            currentUnit = unit;
-            // 获取当前激活的 tab（Jacket 或 Pant）
-            const activeTabContentPrefix = $('#sizeTabs .nav-link.active').data('content-prefix');
-            const contentId = activeTabContentPrefix + unit;
+    function switchSizeUnit(unit) {
+        currentUnit = unit;
+        // 获取当前激活的 tab（Jacket 或 Pant）
+        const activeTabContentPrefix = $('#sizeTabs .nav-link.active').data('content-prefix');
+        const contentId = activeTabContentPrefix + unit;
 
-            // 使用 Bootstrap 的 tab('show') 方法激活对应面板
-            $('#' + contentId).addClass('show active').siblings('.tab-pane').removeClass('show active');
+        // 使用 Bootstrap 的 tab('show') 方法激活对应面板
+        $('#' + contentId).addClass('show active').siblings('.tab-pane').removeClass('show active');
 
-            // 更新按钮样式
-            if (unit === default_size_unit) {
-                $('#switchToDefault-js').addClass('btn-danger').removeClass('btn-secondary');
-                $('#switchToSecond-js').addClass('btn-secondary').removeClass('btn-danger');
-            } else {
-                $('#switchToSecond-js').addClass('btn-danger').removeClass('btn-secondary');
-                $('#switchToDefault-js').addClass('btn-secondary').removeClass('btn-danger');
-            }
+        // 更新按钮样式
+        if (unit === default_size_unit) {
+            $('#switchToDefault-js').addClass('btn-danger').removeClass('btn-secondary');
+            $('#switchToSecond-js').addClass('btn-secondary').removeClass('btn-danger');
+        } else {
+            $('#switchToSecond-js').addClass('btn-danger').removeClass('btn-secondary');
+            $('#switchToDefault-js').addClass('btn-secondary').removeClass('btn-danger');
         }
-        // 绑定切换按钮点击事件
-        $('#switchToDefault-js').on('click', function() {
-            switchSizeUnit(default_size_unit);
-        });
-        $('#switchToSecond-js').on('click', function() {
-            switchSizeUnit(second_size_unit);
-        });
-        // 【可选】当用户切换 Jacket/Pant Tab 时，自动同步到当前单位
-        $('#sizeTabs .nav-link').on('shown.bs.tab', function() {
-            switchSizeUnit(currentUnit);
-        });
-        // ///////////////event/////////////////////
+    }
+    // 绑定切换按钮点击事件
+    $('#switchToDefault-js').on('click', function () {
+        switchSizeUnit(default_size_unit);
+    });
+    $('#switchToSecond-js').on('click', function () {
+        switchSizeUnit(second_size_unit);
+    });
+    // 【可选】当用户切换 Jacket/Pant Tab 时，自动同步到当前单位
+    $('#sizeTabs .nav-link').on('shown.bs.tab', function () {
+        switchSizeUnit(currentUnit);
+    });
+    // ///////////////event/////////////////////
 
-        //affiliate-link-url-copy-js
-        $('#affiliate-link-url-copy-js').on('click', function(e) {
-            e.preventDefault();
-            var $this = $(this);
-            $('#affiliate-link-url-input-js').select();
-            document.execCommand('copy'); // copy
-            $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
-            $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
-            setTimeout(function() {
-                $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
-                $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
-            }, 2000)
-        });
+    //affiliate-link-url-copy-js
+    $('#affiliate-link-url-copy-js').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        $('#affiliate-link-url-input-js').select();
+        document.execCommand('copy'); // copy
+        $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
+        $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
+        setTimeout(function () {
+            $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
+            $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
+        }, 2000)
+    });
 
-        ////////////////////////////////
-        // attr value click
-        $(".product-info-attr-js").on("click", ".attr-value-js button", function(e) {
-            e.preventDefault();
-            const self = $(this);
-            const $fieldset = self.closest('fieldset');
-            const attr = $fieldset.attr('id'); // = size or color
-            const attrValue = self.data('attr-value'); // = us6 or red selected
+    ////////////////////////////////
+    // attr value click
+    $(".product-info-attr-js").on("click", ".attr-value-js button", function (e) {
+        e.preventDefault();
+        const self = $(this);
+        const $fieldset = self.closest('fieldset');
+        const attr = $fieldset.attr('id'); // = size or color
+        const attrValue = self.data('attr-value'); // = us6 or red selected
 
-            //1. basic ui change
-            //1.1 selected style
-            self.closest('div').find('button').removeClass('border-danger'); // remove all border-danger
-            self.removeClass('border-light'); //remove myself border-light
-            self.addClass('border-danger'); // add border-danger
-            //1.2 hide error msg
-            hideAttrErrorMessage(attr);
-            //1.3 show selected attr value name
-            $fieldset.find('.product-selected-attr-value-js')
-                .data('value', attrValue)
-                .data('value-for-restore', attrValue) // for restore after click custom size
-                // .attr('data-value', attrValue) //test
-                // .attr('data-value-for-restore', attrValue) // test
-                .text($sku_map[attr]['values'][attrValue].value_name);
+        //1. basic ui change
+        //1.1 selected style
+        self.closest('div').find('button').removeClass('border-danger'); // remove all border-danger
+        self.removeClass('border-light'); //remove myself border-light
+        self.addClass('border-danger'); // add border-danger
+        //1.2 hide error msg
+        hideAttrErrorMessage(attr);
+        //1.3 show selected attr value name
+        $fieldset.find('.product-selected-attr-value-js')
+            .data('value', attrValue)
+            .data('value-for-restore', attrValue) // for restore after click custom size
+            // .attr('data-value', attrValue) //test
+            // .attr('data-value-for-restore', attrValue) // test
+            .text($sku_map[attr]['values'][attrValue].value_name);
 
-            //2. update product spu attr change event
-            const attrHasPrice = $sku_map[attr].attr_has_price;
-            // img attribute
-            const attrImg = self.data('attr-img');
-            const options = {
-                attrHasPrice: attrHasPrice,
-                attrImg: attrImg,
-            }
-            if (attrImg === 1) {
-                var img_src = self.find('img').attr('src');
-                options.imgSrc = img_src;
-                // setProductImage(img_src);
-            }
-            setProductSpuAttr(attr, attrValue, options);
+        //2. update product spu attr change event
+        const attrHasPrice = $sku_map[attr].attr_has_price;
+        // img attribute
+        const attrImg = self.data('attr-img');
+        const options = {
+            attrHasPrice: attrHasPrice,
+            attrImg: attrImg,
+        }
+        if (attrImg === 1) {
+            var img_src = self.find('img').attr('src');
+            options.imgSrc = img_src;
+            // setProductImage(img_src);
+        }
+        setProductSpuAttr(attr, attrValue, options);
 
-            // display size chart
-            const showSizeChart = $sku_map[attr].show_size_value_chart;
-            if (showSizeChart === 1) { // .data() int
-                const $chartContainer = $fieldset.find('.product-selected-chart-js');
-                const $chartBody = $chartContainer.find('tbody');
-                if ($size_charts[attr][attrValue]) {
-                    let rows = '';
-                    $.each($size_charts[attr][attrValue], function(index, detail) {
-                        const imperialValue = detail.ft ? detail.ft : (detail.inch ? detail.inch + ' in' : '');
-                        const row = `
+        // display size chart
+        const showSizeChart = $sku_map[attr].show_size_value_chart;
+        if (showSizeChart === 1) { // .data() int
+            const $chartContainer = $fieldset.find('.product-selected-chart-js');
+            const $chartBody = $chartContainer.find('tbody');
+            if ($size_charts[attr][attrValue]) {
+                let rows = '';
+                $.each($size_charts[attr][attrValue], function (index, detail) {
+                    const imperialValue = detail.ft ? detail.ft : (detail.inch ? detail.inch + ' in' : '');
+                    const row = `
                     <tr>
                         <td>${detail.attr_name}</td>
                         <td>${imperialValue}</td>
                         <td>${detail.cm} cm</td>
                     </tr>`;
-                        rows += row;
-                    });
-                    $chartBody.html(rows);
-                    $chartContainer.removeClass('d-none');
-                }
-            }
-            //custom size
-            const showSizeCustom = $sku_map[attr].show_size_custom;
-            if (showSizeCustom === 1) {
-                const $customCheckbox = $fieldset.find('.custom-toggle-checkbox-js');
-                // if custom size is checked, then uncheck it
-                if ($customCheckbox.is(':checked')) {
-                    $customCheckbox.prop('checked', false).trigger('change');
-                }
-            }
-
-            // // update product price
-            // if (attrHasPrice === 1) {
-            //     calculateProductPrice();
-            // }
-        });
-
-        // custom checkbox
-        $('.product-info-attr-js').on('change', '.custom-toggle-checkbox-js', function() {
-            const self = $(this);
-            const customPrice = self.data('custom_price');
-            const baseCustomPrice = self.data('base-custom-price');
-
-            const $fieldset = self.closest('fieldset');
-
-            // switch custom form display
-            const targetFormId = self.attr('aria-controls');
-            const isChecked = self.is(':checked');
-            $('#' + targetFormId)
-                .toggleClass('d-none', !isChecked)
-                .attr('aria-hidden', !isChecked);
-            self.attr('aria-expanded', isChecked);
-
-            // related attr and value
-            const relatedAttr = $fieldset.attr('id');
-            const relatedAttrValue = $fieldset.find('.product-selected-attr-value-js').data('value-for-restore');
-            // console.log(relatedAttr, relatedAttrValue);
-
-            if (isChecked) {
-                // related attr value hide
-                $fieldset.find('.d-flex button').removeClass('border-danger');
-                $fieldset.find('.product-selected-attr-value-js')
-                    .data('value', '')
-                    // .attr('data-value', '') // test
-                    .text('');
-                // hide error message
-                hideAttrErrorMessage(relatedAttr);
-                // init custom size
-                if (relatedAttrValue) {
-                    const size_unit = $('#' + targetFormId).find('.unit-selector-js').val();
-                    // console.log(size_unit);
-                    initCustomize(relatedAttr, size_unit, relatedAttrValue);
-                }
-                // size chart hide
-                $fieldset.find('.product-selected-chart-js').addClass('d-none');
-
-                setProductCustomAttr(relatedAttr, relatedAttrValue, customPrice, baseCustomPrice);
-
-            } else {
-                // size show
-                $fieldset.find('.d-flex button').each(function() {
-                    if ($(this).data('attr-value') == relatedAttrValue) {
-                        $(this).removeClass('border-light');
-                        $(this).addClass('border-danger');
-                    }
+                    rows += row;
                 });
-                if (relatedAttrValue) {
-                    $fieldset.find('.product-selected-attr-value-js')
-                        .data('value', relatedAttrValue)
-                        .data('value-for-restore', relatedAttrValue) // for restore after click custom size
-
-                        // .attr('data-value', relatedAttrValue) // test
-                        // .attr('data-value-for-restore', relatedAttrValue) // test
-
-                        .text($sku_map[relatedAttr]['values'][relatedAttrValue].value_name);
-                }
-                // size chart show
-                $fieldset.find('.product-selected-chart-js').removeClass('d-none');
-
-                switchToSpuAttr(relatedAttr, relatedAttrValue);
+                $chartBody.html(rows);
+                $chartContainer.removeClass('d-none');
             }
-
-            // console.log(product_info);
-            // // update product price
-            // calculateProductPrice();
-        });
-        //size unit change
-        $('.product-info-attr-js').on('change', '.unit-selector-js', function() {
-            const $this = $(this);
-            const sizeUnit = $this.val();
-
-            const $fieldset = $this.closest('fieldset');
-            // related attr and value
-            const relatedAttr = $fieldset.attr('id');
-            const relatedAttrValue = $fieldset.find('.product-selected-attr-value-js').data('value-for-restore');
-
-            // 1 just for height and weight
-            const imperialHeight = $('#imperial-height'); //
-            const metricHeight = $('#metric-height');
-            const weightUnitLabel = $('#weight-unit-label');
-            // 2 just for common units
-            const $cus_units = $fieldset.find('.custom-input-unit-js');
-            if (sizeUnit === 'imperial') {
-                if (imperialHeight) {
-                    imperialHeight.removeClass('d-none');
-                    metricHeight.addClass('d-none');
-                    weightUnitLabel.text('lb');
-                }
-                $cus_units.each(function() {
-                    $(this).text('in');
-                });
-            } else {
-                if (imperialHeight) {
-                    imperialHeight.addClass('d-none');
-                    metricHeight.removeClass('d-none');
-                    weightUnitLabel.text('kg');
-                }
-                $cus_units.each(function() {
-                    $(this).text('cm');
-                });
+        }
+        //custom size
+        const showSizeCustom = $sku_map[attr].show_size_custom;
+        if (showSizeCustom === 1) {
+            const $customCheckbox = $fieldset.find('.custom-toggle-checkbox-js');
+            // if custom size is checked, then uncheck it
+            if ($customCheckbox.is(':checked')) {
+                $customCheckbox.prop('checked', false).trigger('change');
             }
-            if (relatedAttrValue) {
-                initCustomize(relatedAttr, sizeUnit, relatedAttrValue);
-            }
-        });
-        //custom input check
-        $('.product-info-attr-js').on('focus', '.custom-form-container-js input', function() {
-            $(this).removeClass("is-invalid");
-        }).on('blur', '.custom-form-container-js input', function() {
-            if (!checkCustomInfo($(this))) {
-                $(this).addClass("is-invalid");
-            }
-        });
-        // qty minus ,plus
-        $("#qty-minus-js").click(function() {
-            let v = parseInt($("#quantity").val());
-            v -= 1;
-            if (v <= 1) {
-                v = 1;
-            }
-            $("#quantity").val(v);
-            product_info.qty = v;
-            if (v <= 1) {
-                $(this).addClass("disabled");
-            } else {
-                $(this).removeClass("disabled");
-            }
-        });
-        // qty plus
-        $("#qty-plus-js").click(function() {
-            let v = parseInt($("#quantity").val());
-            v += 1;
-            if (v >= 100) {
-                v = 100;
-            }
-            $("#quantity").val(v);
-            product_info.qty = v;
-            $("#qty-minus-js").removeClass("disabled");
-        });
+        }
 
-        //show share bar
-        $("#product-detail-icon-share-js").click(function(e) {
-            e.preventDefault();
-            init_share();
-            // show modal
-            var $modal = $('#shareBottomSheet');
-            var modalInstance = new bootstrap.Modal($modal[0]);
-            modalInstance.show();
-        });
-        // when shareBottomSheet modal is hidden
-        $('#shareBottomSheet').on('hidden.bs.modal', function() {
-            // var triggerSource = $(this).data('trigger-source');
-            // console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
-            // // remove trigger source
-            // $(this).removeData('trigger-source');
-        });
-
-        // custom measurement helper
-        $(".product-info-attr-js").on("click", "button.measurement-trigger-js", function(e) {
-            e.preventDefault();
-            var code = $(this).data("measurements-code");
-
-            var name = $size_custom_image[code]['local_img_title'];
-            $('#measurementBottomSheetModalLabel').text(name);
-            const imagePath = $size_custom_image[code]['local_img'];
-            if (imagePath) {
-                $('#modalImage').attr('src', imagePath);
-            }
-            const htmlContent = $size_custom_image[code]['local_img_desc'];
-            if (htmlContent) {
-                $('#modalHtml').html(htmlContent);
-            }
-
-            var trigger = code;
-            // 3 save trigger source to modal
-            var $modal = $('#measurementBottomSheet');
-            $modal.data('trigger-source', trigger); // 保存来源
-            console.log('this modal is triggered by:', trigger);
-            // 4 show modal
-            var modalInstance = new bootstrap.Modal($modal[0]);
-            modalInstance.show();
-        });
-        // when modal is hidden
-        $('#measurementBottomSheet').on('hidden.bs.modal', function() {
-            // console.log('Bottom Sheet is hidden');
-            var triggerSource = $(this).data('trigger-source');
-            console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
-            // remove trigger source
-            $(this).removeData('trigger-source');
-        });
-
-        // add to favorite: throttle 1s 
-        // const throttledFavoriteClick = _.throttle(handleFavoriteClickThrottle, 1000, {
-        //     trailing: false //disable trailing trigger
-        // });
-        $("#product-favorite-js").click(handleFavoriteClickA);
-        // $('#product-favorite-js').on('click', function(e) {
-        //     handleFavoriteClickA(e);
-        // });
-        //add to cart or buy now
-        $('.product-view-js').on('click', 'button', function(e) {
-            e.preventDefault();
-            //1 check product info
-            var result = getProductInfo();
-            if (!result.success) {
-                // scrollToElement(result.errors[0]);
-                renderErrorMsg(result.errors[0]);
-                return false;
-            }
-            // console.log(result);
-            loadProductDetail(result.data);
-
-            //2 get trigger source
-            var trigger = $(this).data('trigger'); // product-add-cart-view-js or product-buy-now-view-js
-
-            $('#productBottomSheetModalLabel').text($(this).text());
-            if (trigger == 'product-add-cart-view-js') {
-                // 1.1 add to cart
-                $('#product-add-cart-js').removeClass('d-none');
-                $('#product-paypal-container-js').addClass('d-none');
-            } else if (trigger == 'product-buy-now-view-js') {
-                //paypal
-                if (typeof(paypal) == "undefined") {
-                    webLoadScript(paypalSdkUrl, function() {
-                        paypalBuynowCreatePayment();
-                    });
-                } else {
-                    paypalBuynowCreatePayment();
-                }
-                // 1.2 buy now
-                $('#product-add-cart-js').addClass('d-none');
-                $('#product-paypal-container-js').removeClass('d-none');
-            }
-            // 3 save trigger source to modal
-            var $modal = $('#productBottomSheet');
-            $modal.data('trigger-source', trigger); // 保存来源
-            console.log('该 modal 是由:', trigger, '触发的');
-            // 4 show modal
-            var modalInstance = bootstrap.Modal.getOrCreateInstance($modal[0]);
-            modalInstance.show();
-        });
-        // when productBottomSheet modal is hidden
-        $('#productBottomSheet').on('hidden.bs.modal', function() {
-            // console.log('Bottom Sheet is hidden');
-            var triggerSource = $(this).data('trigger-source');
-            console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
-            // if Use PayPal JS SDK , clear paypal button container (to prevent duplicate rendering)
-            // tips: PayPal not provide destroy API, but can clear DOM
-            if (triggerSource === 'product-buy-now-view-js') {
-                $('#paypal-button-container').empty(); //clear paypal button
-                // or remove the component
-                // $('#paypal-button-container').html('');
-            }
-            // remove trigger source
-            $(this).removeData('trigger-source');
-        });
-
-        // click add to cart button
-        $('#product-add-cart-js').click(handleAddToCartClick);
-        //remark textarea check
-        $('#customer-remark-js').on('focus', function() {
-            $(this).removeClass("is-invalid");
-        }).on('blur', function() {
-            if (!checkRemark($(this).val())) {
-                $(this).addClass("is-invalid");
-                showToast(order_remark_message, '#toast-js');
-            }
-        });
-
+        // // update product price
+        // if (attrHasPrice === 1) {
+        //     calculateProductPrice();
+        // }
     });
+
+    // custom checkbox
+    $('.product-info-attr-js').on('change', '.custom-toggle-checkbox-js', function () {
+        const self = $(this);
+        const customPrice = self.data('custom_price');
+        const baseCustomPrice = self.data('base-custom-price');
+
+        const $fieldset = self.closest('fieldset');
+
+        // switch custom form display
+        const targetFormId = self.attr('aria-controls');
+        const isChecked = self.is(':checked');
+        $('#' + targetFormId)
+            .toggleClass('d-none', !isChecked)
+            .attr('aria-hidden', !isChecked);
+        self.attr('aria-expanded', isChecked);
+
+        // related attr and value
+        const relatedAttr = $fieldset.attr('id');
+        const relatedAttrValue = $fieldset.find('.product-selected-attr-value-js').data('value-for-restore');
+        // console.log(relatedAttr, relatedAttrValue);
+
+        if (isChecked) {
+            // related attr value hide
+            $fieldset.find('.d-flex button').removeClass('border-danger');
+            $fieldset.find('.product-selected-attr-value-js')
+                .data('value', '')
+                // .attr('data-value', '') // test
+                .text('');
+            // hide error message
+            hideAttrErrorMessage(relatedAttr);
+            // init custom size
+            if (relatedAttrValue) {
+                const size_unit = $('#' + targetFormId).find('.unit-selector-js').val();
+                // console.log(size_unit);
+                initCustomize(relatedAttr, size_unit, relatedAttrValue);
+            }
+            // size chart hide
+            $fieldset.find('.product-selected-chart-js').addClass('d-none');
+
+            setProductCustomAttr(relatedAttr, relatedAttrValue, customPrice, baseCustomPrice);
+
+        } else {
+            // size show
+            $fieldset.find('.d-flex button').each(function () {
+                if ($(this).data('attr-value') == relatedAttrValue) {
+                    $(this).removeClass('border-light');
+                    $(this).addClass('border-danger');
+                }
+            });
+            if (relatedAttrValue) {
+                $fieldset.find('.product-selected-attr-value-js')
+                    .data('value', relatedAttrValue)
+                    .data('value-for-restore', relatedAttrValue) // for restore after click custom size
+
+                    // .attr('data-value', relatedAttrValue) // test
+                    // .attr('data-value-for-restore', relatedAttrValue) // test
+
+                    .text($sku_map[relatedAttr]['values'][relatedAttrValue].value_name);
+            }
+            // size chart show
+            $fieldset.find('.product-selected-chart-js').removeClass('d-none');
+
+            switchToSpuAttr(relatedAttr, relatedAttrValue);
+        }
+
+        // console.log(product_info);
+        // // update product price
+        // calculateProductPrice();
+    });
+    //size unit change
+    $('.product-info-attr-js').on('change', '.unit-selector-js', function () {
+        const $this = $(this);
+        const sizeUnit = $this.val();
+
+        const $fieldset = $this.closest('fieldset');
+        // related attr and value
+        const relatedAttr = $fieldset.attr('id');
+        const relatedAttrValue = $fieldset.find('.product-selected-attr-value-js').data('value-for-restore');
+
+        // 1 just for height and weight
+        const imperialHeight = $('#imperial-height'); //
+        const metricHeight = $('#metric-height');
+        const weightUnitLabel = $('#weight-unit-label');
+        // 2 just for common units
+        const $cus_units = $fieldset.find('.custom-input-unit-js');
+        if (sizeUnit === 'imperial') {
+            if (imperialHeight) {
+                imperialHeight.removeClass('d-none');
+                metricHeight.addClass('d-none');
+                weightUnitLabel.text('lb');
+            }
+            $cus_units.each(function () {
+                $(this).text('in');
+            });
+        } else {
+            if (imperialHeight) {
+                imperialHeight.addClass('d-none');
+                metricHeight.removeClass('d-none');
+                weightUnitLabel.text('kg');
+            }
+            $cus_units.each(function () {
+                $(this).text('cm');
+            });
+        }
+        if (relatedAttrValue) {
+            initCustomize(relatedAttr, sizeUnit, relatedAttrValue);
+        }
+    });
+    //custom input check
+    $('.product-info-attr-js').on('focus', '.custom-form-container-js input', function () {
+        $(this).removeClass("is-invalid");
+    }).on('blur', '.custom-form-container-js input', function () {
+        if (!checkCustomInfo($(this))) {
+            $(this).addClass("is-invalid");
+        }
+    });
+    // qty minus ,plus
+    $("#qty-minus-js").click(function () {
+        let v = parseInt($("#quantity").val());
+        v -= 1;
+        if (v <= 1) {
+            v = 1;
+        }
+        $("#quantity").val(v);
+        product_info.qty = v;
+        if (v <= 1) {
+            $(this).addClass("disabled");
+        } else {
+            $(this).removeClass("disabled");
+        }
+    });
+    // qty plus
+    $("#qty-plus-js").click(function () {
+        let v = parseInt($("#quantity").val());
+        v += 1;
+        if (v >= 100) {
+            v = 100;
+        }
+        $("#quantity").val(v);
+        product_info.qty = v;
+        $("#qty-minus-js").removeClass("disabled");
+    });
+
+    //show share bar
+    $("#product-detail-icon-share-js").click(function (e) {
+        e.preventDefault();
+        init_share();
+        // show modal
+        var $modal = $('#shareBottomSheet');
+        var modalInstance = new bootstrap.Modal($modal[0]);
+        modalInstance.show();
+    });
+    // when shareBottomSheet modal is hidden
+    $('#shareBottomSheet').on('hidden.bs.modal', function () {
+        // var triggerSource = $(this).data('trigger-source');
+        // console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+        // // remove trigger source
+        // $(this).removeData('trigger-source');
+    });
+
+    // custom measurement helper
+    $(".product-info-attr-js").on("click", "button.measurement-trigger-js", function (e) {
+        e.preventDefault();
+        var code = $(this).data("measurements-code");
+
+        var name = $size_custom_image[code]['local_img_title'];
+        $('#measurementBottomSheetModalLabel').text(name);
+        const imagePath = $size_custom_image[code]['local_img'];
+        if (imagePath) {
+            $('#modalImage').attr('src', imagePath);
+        }
+        const htmlContent = $size_custom_image[code]['local_img_desc'];
+        if (htmlContent) {
+            $('#modalHtml').html(htmlContent);
+        }
+
+        var trigger = code;
+        // 3 save trigger source to modal
+        var $modal = $('#measurementBottomSheet');
+        $modal.data('trigger-source', trigger); // 保存来源
+        console.log('this modal is triggered by:', trigger);
+        // 4 show modal
+        var modalInstance = new bootstrap.Modal($modal[0]);
+        modalInstance.show();
+    });
+    // when modal is hidden
+    $('#measurementBottomSheet').on('hidden.bs.modal', function () {
+        // console.log('Bottom Sheet is hidden');
+        var triggerSource = $(this).data('trigger-source');
+        console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+        // remove trigger source
+        $(this).removeData('trigger-source');
+    });
+
+    // add to favorite: throttle 1s 
+    // const throttledFavoriteClick = _.throttle(handleFavoriteClickThrottle, 1000, {
+    //     trailing: false //disable trailing trigger
+    // });
+    $("#product-favorite-js").click(handleFavoriteClickA);
+    // $('#product-favorite-js').on('click', function(e) {
+    //     handleFavoriteClickA(e);
+    // });
+    //add to cart or buy now
+    $('.product-view-js').on('click', 'button', function (e) {
+        e.preventDefault();
+        //1 check product info
+        var result = getProductInfo();
+        if (!result.success) {
+            // scrollToElement(result.errors[0]);
+            renderErrorMsg(result.errors[0]);
+            return false;
+        }
+        // console.log(result);
+        loadProductDetail(result.data);
+
+        //2 get trigger source
+        var trigger = $(this).data('trigger'); // product-add-cart-view-js or product-buy-now-view-js
+
+        $('#productBottomSheetModalLabel').text($(this).text());
+        if (trigger == 'product-add-cart-view-js') {
+            // 1.1 add to cart
+            $('#product-add-cart-js').removeClass('d-none');
+            $('#product-paypal-container-js').addClass('d-none');
+        } else if (trigger == 'product-buy-now-view-js') {
+            //paypal
+            if (typeof (paypal) == "undefined") {
+                webLoadScript(paypalSdkUrl, function () {
+                    paypalBuynowCreatePayment();
+                });
+            } else {
+                paypalBuynowCreatePayment();
+            }
+            // 1.2 buy now
+            $('#product-add-cart-js').addClass('d-none');
+            $('#product-paypal-container-js').removeClass('d-none');
+        }
+        // 3 save trigger source to modal
+        var $modal = $('#productBottomSheet');
+        $modal.data('trigger-source', trigger); // 保存来源
+        console.log('该 modal 是由:', trigger, '触发的');
+        // 4 show modal
+        var modalInstance = bootstrap.Modal.getOrCreateInstance($modal[0]);
+        modalInstance.show();
+    });
+    // when productBottomSheet modal is hidden
+    $('#productBottomSheet').on('hidden.bs.modal', function () {
+        // console.log('Bottom Sheet is hidden');
+        var triggerSource = $(this).data('trigger-source');
+        console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+        // if Use PayPal JS SDK , clear paypal button container (to prevent duplicate rendering)
+        // tips: PayPal not provide destroy API, but can clear DOM
+        if (triggerSource === 'product-buy-now-view-js') {
+            $('#paypal-button-container').empty(); //clear paypal button
+            // or remove the component
+            // $('#paypal-button-container').html('');
+        }
+        // remove trigger source
+        $(this).removeData('trigger-source');
+    });
+
+    // click add to cart button
+    $('#product-add-cart-js').click(handleAddToCartClick);
+    //remark textarea check
+    $('#customer-remark-js').on('focus', function () {
+        $(this).removeClass("is-invalid");
+    }).on('blur', function () {
+        if (!checkRemark($(this).val())) {
+            $(this).addClass("is-invalid");
+            showToast(order_remark_message, '#toast-js');
+        }
+    });
+
+});

@@ -11,7 +11,7 @@ terser 负责压缩js
     terser src/js/js.js -o dist/js/js.min.js
     terser src/js/product.js -o dist/js/product.min.js
     terser src/js/category.js -o dist/js/category.min.js
-
+    terser src/js/search.js -o dist/js/search.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it
