@@ -8,15 +8,6 @@ function isSurportedLoading() {
 // console.log(isSurportedLoading()); // if true, loading attribute is supported
 
 /////////////////// url操作 start
-// 废弃 获取当前页面URL的查询参数对象 
-function getUrlParams() {
-    // get current page URL
-    const url = new URL(window.location.href);
-    // create URLSearchParams
-    const searchParams = new URLSearchParams(url.search);
-    // return searchParams object;
-    return searchParams;
-}
 // 添加命名空间对象 对象字面量 
 // 无状态的工具函数集合
 // 所有方法都是纯函数：输入 → 输出，没有副作用
@@ -268,6 +259,26 @@ function pullSearchHistory(Url) {
         }
     });
 }
+function removeHistory(url, keyword) {
+        data = {};
+        if (keyword) {
+            data['keyword'] = keyword;
+        }
+        $.ajax({
+            async: true,
+            timeout: 6000,
+            dataType: 'json',
+            data: data,
+            type: 'post',
+            url: url,
+            success: function(data, textStatus) {
+
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+
+            }
+        });
+    }
 /**
  * save search history to server
  * @param {string} keyword 
@@ -535,101 +546,101 @@ function add_query_arg(param, value, url) {
 
 
 // /**
-//  * InfiniteLoader - 使用 jQuery 简化 DOM 操作，适用于已引入 jQuery 的现代移动项目
-//  */
-// class InfiniteLoader {
-//     constructor(options = {}) {
-//         this.options = $.extend({
-//             triggerSelector: '#load-trigger',
-//             containerSelector: '#product-list-more',
-//             loadingHtml: '<div id="loading-more" class="col-12 text-center my-3">Loading...</div>',
-//             noMoreHtml: '<div class="col-12 text-center text-muted infinite-loader-no-more">No more products.</div>',
-//             fetchData: null, // (page) => Promise or jqXHR
-//             onPageChange: () => {},
-//             maxPage: Infinity,
-//             rootMargin: '100px'
-//         }, options);
+    //  * InfiniteLoader - 使用 jQuery 简化 DOM 操作，适用于已引入 jQuery 的现代移动项目
+    //  */
+    // class InfiniteLoader {
+    //     constructor(options = {}) {
+    //         this.options = $.extend({
+    //             triggerSelector: '#load-trigger',
+    //             containerSelector: '#product-list-more',
+    //             loadingHtml: '<div id="loading-more" class="col-12 text-center my-3">Loading...</div>',
+    //             noMoreHtml: '<div class="col-12 text-center text-muted infinite-loader-no-more">No more products.</div>',
+    //             fetchData: null, // (page) => Promise or jqXHR
+    //             onPageChange: () => {},
+    //             maxPage: Infinity,
+    //             rootMargin: '100px'
+    //         }, options);
 
-//         this.pageNum = 1;
-//         this.isLoading = false;
-//         this.observer = null;
+    //         this.pageNum = 1;
+    //         this.isLoading = false;
+    //         this.observer = null;
 
-//         this.init();
-//     }
+    //         this.init();
+    //     }
 
-//     init() {
-//         const $trigger = $(this.options.triggerSelector);
-//         if ($trigger.length === 0 || !this.options.fetchData) return;
+    //     init() {
+    //         const $trigger = $(this.options.triggerSelector);
+    //         if ($trigger.length === 0 || !this.options.fetchData) return;
 
-//         // 所有现代手机都支持 IntersectionObserver
-//         this.observer = new IntersectionObserver(
-//             (entries) => {
-//                 if (entries[0].isIntersecting && !this.isLoading) {
-//                     this.loadMore();
-//                 }
-//             }, {
-//                 rootMargin: this.options.rootMargin
-//             }
-//         );
-//         this.observer.observe($trigger[0]); // 取原生 DOM 元素
-//     }
+    //         // 所有现代手机都支持 IntersectionObserver
+    //         this.observer = new IntersectionObserver(
+    //             (entries) => {
+    //                 if (entries[0].isIntersecting && !this.isLoading) {
+    //                     this.loadMore();
+    //                 }
+    //             }, {
+    //                 rootMargin: this.options.rootMargin
+    //             }
+    //         );
+    //         this.observer.observe($trigger[0]); // 取原生 DOM 元素
+    //     }
 
-//     loadMore() {
-//         if (this.pageNum > this.options.maxPage || this.isLoading) {
-//             this.stopAndShowNoMore();
-//             return;
-//         }
+    //     loadMore() {
+    //         if (this.pageNum > this.options.maxPage || this.isLoading) {
+    //             this.stopAndShowNoMore();
+    //             return;
+    //         }
 
-//         this.isLoading = true;
-//         const $container = $(this.options.containerSelector);
-//         if ($container.length === 0) {
-//             this.isLoading = false;
-//             return;
-//         }
+    //         this.isLoading = true;
+    //         const $container = $(this.options.containerSelector);
+    //         if ($container.length === 0) {
+    //             this.isLoading = false;
+    //             return;
+    //         }
 
-//         $container.append(this.options.loadingHtml);
+    //         $container.append(this.options.loadingHtml);
 
-//         const request = this.options.fetchData(this.pageNum);
+    //         const request = this.options.fetchData(this.pageNum);
 
-//         // 支持 jQuery Deferred（$.ajax）或原生 Promise
-//         $.when(request).done((response) => {
-//             $('#loading-more').remove();
+    //         // 支持 jQuery Deferred（$.ajax）或原生 Promise
+    //         $.when(request).done((response) => {
+    //             $('#loading-more').remove();
 
-//             if (response && response.html && response.html.trim()) {
-//                 $container.append(response.html);
-//                 this.pageNum = response.next_page ?? (this.pageNum + 1);
-//                 this.options.onPageChange(this.pageNum - 1);
+    //             if (response && response.html && response.html.trim()) {
+    //                 $container.append(response.html);
+    //                 this.pageNum = response.next_page ?? (this.pageNum + 1);
+    //                 this.options.onPageChange(this.pageNum - 1);
 
-//                 if (this.pageNum > this.options.maxPage) {
-//                     this.stopAndShowNoMore();
-//                 }
-//             } else {
-//                 this.stopAndShowNoMore();
-//             }
-//         }).fail((xhr, status, error) => {
-//             $('#loading-more').remove();
-//             console.error('Load more failed:', error);
-//             alert('加载失败，请重试。');
-//         }).always(() => {
-//             this.isLoading = false;
-//         });
-//     }
+    //                 if (this.pageNum > this.options.maxPage) {
+    //                     this.stopAndShowNoMore();
+    //                 }
+    //             } else {
+    //                 this.stopAndShowNoMore();
+    //             }
+    //         }).fail((xhr, status, error) => {
+    //             $('#loading-more').remove();
+    //             console.error('Load more failed:', error);
+    //             alert('加载失败，请重试。');
+    //         }).always(() => {
+    //             this.isLoading = false;
+    //         });
+    //     }
 
-//     stopAndShowNoMore() {
-//         if (this.observer) {
-//             const $trigger = $(this.options.triggerSelector);
-//             if ($trigger.length) this.observer.unobserve($trigger[0]);
-//             this.observer.disconnect();
-//             this.observer = null;
-//         }
+    //     stopAndShowNoMore() {
+    //         if (this.observer) {
+    //             const $trigger = $(this.options.triggerSelector);
+    //             if ($trigger.length) this.observer.unobserve($trigger[0]);
+    //             this.observer.disconnect();
+    //             this.observer = null;
+    //         }
 
-//         const $container = $(this.options.containerSelector);
-//         if ($container.length && !$container.find('.infinite-loader-no-more').length) {
-//             $container.append(this.options.noMoreHtml);
-//         }
-//     }
+    //         const $container = $(this.options.containerSelector);
+    //         if ($container.length && !$container.find('.infinite-loader-no-more').length) {
+    //             $container.append(this.options.noMoreHtml);
+    //         }
+    //     }
 
-//     destroy() {
-//         this.stopAndShowNoMore();
-//     }
-// }
+    //     destroy() {
+    //         this.stopAndShowNoMore();
+    //     }
+    // }
