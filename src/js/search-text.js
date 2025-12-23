@@ -23,7 +23,7 @@ function renderSearchHistory() {
     $('#search-history-js').removeClass('d-none');
 }
 
-$(document).ready(function () {
+$(function () {
     // // test
     // var url = 'http://localhost:8080/search/index?a=b&q=test1111';
     // console.log(url);

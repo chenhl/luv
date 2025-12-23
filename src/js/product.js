@@ -951,7 +951,7 @@ function handleAddToCartClick(e) {
             } else {
                 console.error('AJAX Error:', textStatus, errorThrown);
             }
-            console.log(message);
+            // console.log(message);
         },
         complete: function () {
             self.prop('disabled', false);
@@ -1281,18 +1281,43 @@ $(function () {
     });
     // ///////////////event/////////////////////
 
+
     //affiliate-link-url-copy-js
     $('#affiliate-link-url-copy-js').on('click', function (e) {
         e.preventDefault();
         var $this = $(this);
-        $('#affiliate-link-url-input-js').select();
-        document.execCommand('copy'); // copy
-        $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
-        $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
-        setTimeout(function () {
-            $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
-            $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
-        }, 2000)
+        const textToCopy = $('#affiliate-link-url-input-js').val().trim();
+        if (!textToCopy) {
+            // 可选：提示用户链接为空
+            return;
+        }
+        // 复制文本到剪贴板
+        // 1 旧方案 提示 execCommand 已被弃用
+        // $('#affiliate-link-url-input-js').select();
+        // document.execCommand('copy'); // copy
+        // $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
+        // $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
+        // setTimeout(function () {
+        //     $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
+        //     $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
+        // }, 2000);
+
+        // 2 新方案 调用封装好的复制函数 js.js 封装的函数
+        copyTextToClipboard(textToCopy).then(function (success) {
+            // 切换“Copied”状态
+            $btn.find('.affiliate-link-url-copy-label-js').addClass('d-none');
+            $btn.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
+
+            setTimeout(function () {
+                $btn.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
+                $btn.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
+            }, 2000);
+            // 可选：处理失败情况
+            if (!success) {
+                console.error('Failed to copy link.');
+                // 例如：显示错误提示给用户
+            }
+        });
     });
 
     ////////////////////////////////
@@ -1487,32 +1512,95 @@ $(function () {
             $(this).addClass("is-invalid");
         }
     });
-    // qty minus ,plus
-    $("#qty-minus-js").click(function () {
-        let v = parseInt($("#quantity").val());
-        v -= 1;
-        if (v <= 1) {
-            v = 1;
+
+    /////////////数量处理 start
+    // 缓存常用 DOM 元素
+    const $quantityInput = $("#quantity");
+    const $minusBtn = $("#qty-minus-js");
+    const $plusBtn = $("#qty-plus-js");
+    // 统一更新数量和按钮状态的函数
+    function updateQuantity(newQty) {
+        // 边界限制
+        newQty = Math.max(1, Math.min(newQty, max_qty));
+
+        // 更新输入框和数据对象
+        $quantityInput.val(newQty);
+        product_info.qty = newQty;
+
+        // 更新按钮禁用状态
+        $minusBtn.toggleClass("disabled", newQty <= 1);
+        $plusBtn.toggleClass("disabled", newQty >= max_qty);
+    }
+    // 减少数量
+    $minusBtn.on("click", function () {
+        if ($(this).hasClass("disabled")) return; // 可选：提前拦截
+        const current = parseInt($quantityInput.val(), 10) || 1; // 防 NaN
+        updateQuantity(current - 1);
+    });
+    // 增加数量
+    $plusBtn.on("click", function () {
+        if ($(this).hasClass("disabled")) return; // 可选：提前拦截
+        const current = parseInt($quantityInput.val(), 10) || 1;
+        updateQuantity(current + 1);
+    });
+
+    $quantityInput.on("input", function () {
+        let val = parseInt($(this).val(), 10);
+        // 如果不是有效数字，暂不处理（或设为默认值）
+        if (isNaN(val)) {
+            // 可选：保留空值，或强制设为1
+            // $(this).val(1);
+            return;
         }
-        $("#quantity").val(v);
-        product_info.qty = v;
-        if (v <= 1) {
-            $(this).addClass("disabled");
+        // 限制在 [1, max_qty] 范围内
+        val = Math.max(1, Math.min(val, max_qty));
+        updateQuantity(val); // 使用你已有的统一更新函数
+    });
+
+    // 可选：在失去焦点时再做一次清理（防止用户输入 1.5、空格等）
+    $quantityInput.on("blur", function () {
+        let val = parseInt($(this).val(), 10);
+        if (isNaN(val) || val < 1) {
+            updateQuantity(1);
+        } else if (val > max_qty) {
+            updateQuantity(max_qty);
         } else {
-            $(this).removeClass("disabled");
+            updateQuantity(val);
         }
     });
-    // qty plus
-    $("#qty-plus-js").click(function () {
-        let v = parseInt($("#quantity").val());
-        v += 1;
-        if (v >= 100) {
-            v = 100;
-        }
-        $("#quantity").val(v);
-        product_info.qty = v;
-        $("#qty-minus-js").removeClass("disabled");
-    });
+    /////////////数量处理 end
+
+    // // qty minus ,plus
+    // $("#qty-minus-js").click(function () {
+    //     let v = parseInt($("#quantity").val());
+    //     v -= 1;
+    //     if (v <= 1) {
+    //         v = 1;
+    //     }
+    //     $("#quantity").val(v);
+    //     product_info.qty = v;
+    //     if (v <= 1) {
+    //         $(this).addClass("disabled");
+    //     } else {
+    //         $(this).removeClass("disabled");
+    //     }
+    // });
+    // // qty plus
+    // $("#qty-plus-js").click(function () {
+    //     let v = parseInt($("#quantity").val());
+    //     v += 1;
+    //     if (v >= max_qty) {
+    //         v = max_qty;
+    //     }
+    //     $("#quantity").val(v);
+    //     product_info.qty = v;
+
+    //     if (v >= max_qty) {
+    //         $(this).addClass("disabled");
+    //     } else {
+    //         $(this).removeClass("disabled");
+    //     }
+    // });
 
     //show share bar
     $("#product-detail-icon-share-js").click(function (e) {
@@ -1551,7 +1639,7 @@ $(function () {
         // 3 save trigger source to modal
         var $modal = $('#measurementBottomSheet');
         $modal.data('trigger-source', trigger); // 保存来源
-        console.log('this modal is triggered by:', trigger);
+        // console.log('this modal is triggered by:', trigger);
         // 4 show modal
         var modalInstance = new bootstrap.Modal($modal[0]);
         modalInstance.show();
@@ -1560,7 +1648,7 @@ $(function () {
     $('#measurementBottomSheet').on('hidden.bs.modal', function () {
         // console.log('Bottom Sheet is hidden');
         var triggerSource = $(this).data('trigger-source');
-        console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+        // console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
         // remove trigger source
         $(this).removeData('trigger-source');
     });
@@ -1573,6 +1661,7 @@ $(function () {
     // $('#product-favorite-js').on('click', function(e) {
     //     handleFavoriteClickA(e);
     // });
+    
     //add to cart or buy now
     $('.product-view-js').on('click', 'button', function (e) {
         e.preventDefault();
@@ -1610,7 +1699,7 @@ $(function () {
         // 3 save trigger source to modal
         var $modal = $('#productBottomSheet');
         $modal.data('trigger-source', trigger); // 保存来源
-        console.log('该 modal 是由:', trigger, '触发的');
+        // console.log('该 modal 是由:', trigger, '触发的');
         // 4 show modal
         var modalInstance = bootstrap.Modal.getOrCreateInstance($modal[0]);
         modalInstance.show();
@@ -1619,7 +1708,8 @@ $(function () {
     $('#productBottomSheet').on('hidden.bs.modal', function () {
         // console.log('Bottom Sheet is hidden');
         var triggerSource = $(this).data('trigger-source');
-        console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+        // console.log('this modal is triggered by:', triggerSource, 'and it is hidden');
+
         // if Use PayPal JS SDK , clear paypal button container (to prevent duplicate rendering)
         // tips: PayPal not provide destroy API, but can clear DOM
         if (triggerSource === 'product-buy-now-view-js') {

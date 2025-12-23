@@ -51,7 +51,58 @@ const UrlUtils = {
     }
 };
 /////////////////// url操作 end
+///////////////// time zone
+window.UserTimezone = {
+    // 防重复标记
+    _sent: false,
 
+    // 获取时区（现代浏览器）
+    getBrowserTimezone: function () {
+        try {
+            if (window.Intl && Intl.DateTimeFormat) {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+            }
+        } catch (e) {
+            console.warn('Failed to get timezone:', e);
+        }
+        return null;
+    },
+
+    // 上报到后端
+    sendToServer: function (timezone) {
+        if (this._sent || !timezone) return;
+        var data = {
+            timezone: timezone
+        };
+        if (typeof csrfName !== 'undefined') {
+            data[csrfName] = csrfVal; // Yii2 CSRF 保护
+        }
+        $.ajax({
+            url: '/api/member/set-timezone',
+            method: 'POST',
+            data: data,
+            timeout: 5000,
+            success: function (res) {
+                if (res.success) {
+                    UserTimezone._sent = true;
+                    console.log('User timezone reported:', timezone);
+                }
+            },
+            error: function () {
+                // 失败不重试，避免影响用户体验
+            }
+        });
+    },
+
+    // 初始化
+    init: function () {
+        var tz = this.getBrowserTimezone();
+        if (tz) {
+            this.sendToServer(tz);
+        }
+    }
+};
+//////////////timezone end
 function webLoadScript(url, callback) {
     var script = document.createElement("script");
     script.type = "text/javascript";
@@ -117,12 +168,13 @@ function getCookie(name) {
         return null;
     }
 }
-
+// 依赖bootstrap Toast组件 bootstrap js
 function showToast(msg, element) {
-    $(element).find('.toast-body').text(msg);
     // const toastEl = document.getElementById('toast-js');
+    element = element || '#toast-js';
     const toastEl = $(element);
     if (toastEl) {
+        $(element).find('.toast-body').text(msg);
         const toast = bootstrap.Toast.getOrCreateInstance(toastEl[0]);
         toast.show();
     }
@@ -136,7 +188,108 @@ function hideError($el, $input) {
     $el.addClass('d-none');
     $input.removeClass('is-invalid');
 }
-$(document).ready(function () {
+/**
+ * 复制文本到剪贴板（兼容现代浏览器和旧浏览器）
+ * @param {string} text - 要复制的文本
+ * @returns {Promise<boolean>} - 成功返回 true，失败返回 false
+ */
+function copyTextToClipboard(text) {
+    return new Promise(function (resolve) {
+        // 优先使用 Clipboard API（需安全上下文）
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(function () {
+                    resolve(true);
+                })
+                .catch(function (err) {
+                    console.warn('Clipboard API failed, falling back to execCommand:', err);
+                    // 回退到 execCommand
+                    resolve(fallbackCopyText(text));
+                });
+        } else {
+            // 直接使用降级方案
+            resolve(fallbackCopyText(text));
+        }
+    });
+}
+
+/**
+ * 使用 document.execCommand 的降级复制方法
+ * @param {string} text
+ * @returns {boolean}
+ */
+function fallbackCopyText(text) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        var success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return success;
+    } catch (err) {
+        document.body.removeChild(textarea);
+        return false;
+    }
+}
+
+// 防重复 + 自动上报 用户时区
+// 只在需要时发，比如进入结账页查看coupon时，才需要上报用户时区
+window.UserTimezone = {
+    // 防重复标记
+    _sent: false,
+
+    // 获取时区（现代浏览器）
+    getBrowserTimezone: function () {
+        try {
+            if (window.Intl && Intl.DateTimeFormat) {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+            }
+        } catch (e) {
+            console.warn('Failed to get timezone:', e);
+        }
+        return null;
+    },
+
+    // 上报到后端
+    sendToServer: function (timezone) {
+        if (this._sent || !timezone) return;
+        var data = {
+            timezone: timezone
+        };
+        if (typeof csrfName !== 'undefined') {
+            data[csrfName] = csrfVal; // Yii2 CSRF 保护
+        }
+        $.ajax({
+            url: '/api/member/set-timezone',
+            method: 'POST',
+            data: data,
+            timeout: 5000,
+            success: function (res) {
+                if (res.success) {
+                    UserTimezone._sent = true;
+                    console.log('User timezone reported:', timezone);
+                }
+            },
+            error: function () {
+                // 失败不重试，避免影响用户体验
+            }
+        });
+    },
+
+    // 初始化
+    init: function () {
+        var tz = this.getBrowserTimezone();
+        if (tz) {
+            this.sendToServer(tz);
+        }
+    }
+};
+
+
+$(function () {
 
     if (typeof memberCheckUrl !== 'undefined') {
         const ajax_params = {};
@@ -185,14 +338,15 @@ $(document).ready(function () {
     // });
     //ajax subscribe
     $("#subscribe_btn").click(function () {
+        var $btn = $(this);
         //disable button
-        $(this).prop('disabled', true);
+        $btn.prop('disabled', true);
 
         email = $("#subscribe_email").val();
         if (!check_email(email)) {
             alert('Enter your email address');
             //enable button
-            $('#subscribe_btn').prop('disabled', false);
+            $btn.prop('disabled', false);
             return false;
         }
         $.ajax({
@@ -203,7 +357,7 @@ $(document).ready(function () {
             url: "/member/account/subscribe",
             success: function (data, textStatus) {
                 //enable button
-                $('#subscribe_btn').prop('disabled', false);
+                $btn.prop('disabled', false);
                 if (data.success) {
                     alert(data.message);
                     $("#subscribe_email").val("");
@@ -212,10 +366,9 @@ $(document).ready(function () {
                 }
             },
             error: function (error) {
-
                 alert('Oops! Something went wrong. Please try again later.');
                 //enable button
-                $('#subscribe_btn').prop('disabled', false);
+                $btn.prop('disabled', false);
             }
         })
     });

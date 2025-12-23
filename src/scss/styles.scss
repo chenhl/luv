@@ -79,7 +79,7 @@ $accordion-body-padding-x: 0.5rem;
 @import "bootstrap/scss/badge";
 @import "bootstrap/scss/alert";
 // @import "bootstrap/scss/progress";
-// @import "bootstrap/scss/list-group";
+@import "bootstrap/scss/list-group";
 @import "bootstrap/scss/close";
 @import "bootstrap/scss/toasts";
 @import "bootstrap/scss/modal"; // Requires transitions
@@ -118,6 +118,17 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
+.luv-bg-coupon-unavailable-flag { 
+  background-image: url('../images/coupon-bg-unavailable.png');
+  background-size: cover;
+  background-position: center;
+}
+.luv-bg-coupon-unavailable { 
+  background: linear-gradient(to bottom right,#cdcdcd,#b7b7b7);
+}
+.luv-bg-coupon-available {
+  background: linear-gradient(to bottom right, #f89a8e, #f36c5a);
+}
 .luv-left-affiliate { 
   background-image: url('../images/bg-left-affiliate.png');
   background-size: cover;
@@ -152,7 +163,7 @@ $accordion-body-padding-x: 0.5rem;
   }
 
 }
-
+//////////// Bottom Sheet start ////////////
 /* 自定义 Bottom Sheet 动画 */
 @keyframes slideUpIn {
   from {
@@ -208,3 +219,4 @@ $accordion-body-padding-x: 0.5rem;
 .luv-bottom-sheet-dragger:active {
   cursor: grabbing;
 }
+//////////// Bottom Sheet end ////////////

@@ -15,6 +15,9 @@ terser 负责压缩js
     terser src/js/search-text.js -o dist/js/search-text.min.js
     terser src/js/login.js -o dist/js/login.min.js
     terser src/js/register.js -o dist/js/register.min.js
+    terser src/js/forgot-password.js -o dist/js/forgot-password.min.js
+    terser src/js/reset-password.js -o dist/js/reset-password.min.js
+    terser src/js/order.js -o dist/js/order.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it
