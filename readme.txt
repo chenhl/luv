@@ -3,6 +3,7 @@ https://github.com/twbs/examples/tree/main/webpack
 
 --------------
 webpack 负责定制bootstrap的样式
+npm run build
 
 npm install -g terser
 terser 负责压缩js 
