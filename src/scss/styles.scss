@@ -138,7 +138,14 @@ $accordion-body-padding-x: 0.5rem;
   background: rgba(0, 0, 0, .4);
   color: #fff;
 }
-
+// header上的logo大小
+.luv-header-logo {
+  max-height: 30px;
+}
+// 登录、注册页等主体页面的logo大小
+.luv-content-logo {
+  max-height: 30px;
+}
 // 1商品详情 图片sku的宽高 4:5 8:10
 .luv-sku-color-img-max-width {
     max-width: 50px; /* 最大宽度 */
