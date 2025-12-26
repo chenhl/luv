@@ -19,6 +19,7 @@ terser 负责压缩js
     terser src/js/forgot-password.js -o dist/js/forgot-password.min.js
     terser src/js/reset-password.js -o dist/js/reset-password.min.js
     terser src/js/order.js -o dist/js/order.min.js
+    terser src/js/order-address.js -o dist/js/order-address.min.js
     terser src/js/cart.js -o dist/js/cart.min.js
     terser src/js/pay.js -o dist/js/pay.min.js
 -----------
