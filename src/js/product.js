@@ -961,6 +961,12 @@ function handleAddToCartClick(e) {
 }
 
 function paypalBuynowCreatePayment() {
+    //1 获取paypal按钮的容器
+    const container = document.getElementById('product-paypal-container-js');
+    //2 如果已渲染，直接返回
+    if (container.dataset.rendered === '1') return;
+
+    //3 创建paypal按钮
     var FUNDING_SOURCES = [
         paypal.FUNDING.PAYPAL,
     ];
@@ -1015,6 +1021,12 @@ function paypalBuynowCreatePayment() {
                         // console.log('There has been a problem with your fetch operation:', error);
                     });
             },
+            onCancel: (data) => {
+                //data的值: {orderID: '35G84664V47979731'}
+                //window.location.assign("/your-cancel-page");
+                //TODO: 取消支付后的处理逻辑
+                // console.log('PayPal支付已取消:', data);
+            },
             onApprove: (data, actions) => {
                 return fetch(paypalCaptureOrderUrl, {
                     method: "post",
@@ -1059,6 +1071,8 @@ function paypalBuynowCreatePayment() {
             button.render('#product-paypal-container-js')
         }
 
+        //4 标记已渲染
+        container.dataset.rendered = '1';
     });
 }
 
@@ -1661,7 +1675,7 @@ $(function () {
     // $('#product-favorite-js').on('click', function(e) {
     //     handleFavoriteClickA(e);
     // });
-    
+
     //add to cart or buy now
     $('.product-view-js').on('click', 'button', function (e) {
         e.preventDefault();

@@ -19,6 +19,8 @@ terser 负责压缩js
     terser src/js/forgot-password.js -o dist/js/forgot-password.min.js
     terser src/js/reset-password.js -o dist/js/reset-password.min.js
     terser src/js/order.js -o dist/js/order.min.js
+    terser src/js/cart.js -o dist/js/cart.min.js
+    terser src/js/pay.js -o dist/js/pay.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it
@@ -26,7 +28,7 @@ https://cdn.jsdelivr.net/gh/user/repo@version/file
 github:
 https://cdn.jsdelivr.net/gh/chenhl/luv@main/dist/css/style.css
 
-------------
+---------------------
 npm :
 https://cdn.jsdelivr.net/npm/luv-assets@latest/dist/css/style.css
 
@@ -40,3 +42,7 @@ npm version patch
 
 # 发布新版本
 npm publish
+
+# token update
+npm config set //registry.npmjs.org/:_authToken=YOUR_TOKEN_HERE
+-----------------------------
