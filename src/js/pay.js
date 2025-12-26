@@ -121,11 +121,16 @@ function renderPayPalButtons() {
                 })
                 .then((orderData) => {
                     if (orderData.order_sn == '-1') {
-                        if (orderData.error_issue === 'INSTRUMENT_DECLINED') {
+                        if (!orderData.is_local) { // paypal HttpException
+                            if (orderData.error_issue === 'INSTRUMENT_DECLINED') { //INSTRUMENT_DECLINED
+                                alert(orderData.message);
+                                return actions.restart();
+                            } else {
+                                throw new Error(orderData.message);
+                            }
+                        } else { //local Exception: paypal正常支付了但更新本地库失败，需紧急处理
                             alert(orderData.message);
-                            return actions.restart();
-                        } else {
-                            throw new Error(orderData.message);
+                            // actions.redirect(`${failPayUrl}?order_sn=${orderSn}&error=${orderData.message}`);
                         }
                     }
 
@@ -223,9 +228,10 @@ function setupUseePay() {
             // 3-2、提交
             $.ajax({
                 url: payment_ui_configs.payment_useepay_sdk.useepayCreateTokenUrl,
+                async: false, // 同步请求，等待服务器响应
                 method: 'POST',
                 data: {
-                    order_sn: $('#order_sn').val(),
+                    order_sn: orderSn,
                     // =======客户端 浏览器browser数据 start
                     deviceChannel: 'browser',
                     acceptHeader: navigator.userAgent,
@@ -258,6 +264,7 @@ function setupUseePay() {
                         // 3-2-2-3、跳转确认订单结果页
                         $.ajax({
                             url: payment_ui_configs.payment_useepay_sdk.useepayResultUrl,
+                            async: false, // 同步请求，等待服务器响应
                             method: 'POST',
                             data: JSON.parse(confirmRes.data),
                             success: function (result) {

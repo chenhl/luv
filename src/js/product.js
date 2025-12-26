@@ -1042,21 +1042,30 @@ function paypalBuynowCreatePayment() {
                         return response.json();
                     })
                     .then((orderData) => {
-                        if (orderData.order_sn == '-1') {
-                            if (orderData.error_issue === 'INSTRUMENT_DECLINED') {
-                                alert(orderData.message);
-                                return actions.restart();
-                            } else {
-                                throw new Error(orderData.message);
+                        const order_sn = orderData.order_sn;
+                        if (order_sn == '-1') {
+                            if (!orderData.is_local) { // paypal HttpException
+                                //单独处理INSTRUMENT_DECLINED，return actions.restart();自动让用户选择其它支付
+                                if (orderData.error_issue === 'INSTRUMENT_DECLINED') {
+                                    alert(orderData.message);
+                                    return actions.restart();
+                                } else {
+                                    throw new Error(orderData.message);//抛出错误，会被catch捕获
+                                }
+                            } else { // local Exception: paypal正常支付了但更新本地库失败，需紧急处理
+                                //TODO: 本地订单处理失败，需紧急处理
+                                // console.log('本地订单处理失败:', orderData);
                             }
                         }
+
                         // const transaction = orderData.purchase_units[0].payments.captures[0];
-                        const order_sn = orderData.order_sn;
                         actions.redirect(`${paypalFinishOrderUrl}?order_sn=${order_sn}`);
                     })
                     .catch((error) => {
                         alert(error);
                         // console.log('There has been a problem with your fetch operation:', error);
+                        // captue如果发生错误，全部重启支付：现在改成只有INSTRUMENT_DECLINED时才重启
+                        // return actions.restart();
                     });
             }
             // ,
