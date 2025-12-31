@@ -118,6 +118,11 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
+.luv-bg-usercenter { 
+  background-image: url('../images/user-center-info-bg.png');
+  background-size: cover;
+  background-position: center;
+}
 .luv-bg-coupon-unavailable-flag { 
   background-image: url('../images/coupon-bg-unavailable.png');
   background-size: cover;
@@ -134,9 +139,36 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
+.luv-bg-banner1 { 
+  background-image: url('../images/bg-banner1.png');
+  background-size: cover;
+  background-position: center;
+}
 .luv-bg-thin { 
   background: rgba(0, 0, 0, .4);
   color: #fff;
+}
+// 边距 有fixed-bottom时，需要调整margin-bottom，但是bs默认的比较小，这儿自定义些大的
+.luv-mb-4 {
+  margin-bottom: 4rem !important;
+}
+.luv-mb-5 {
+  margin-bottom: 5rem !important;
+}
+.luv-mb-6 {
+  margin-bottom: 6rem !important;
+}
+.luv-mb-7 {
+  margin-bottom: 7rem !important;
+}
+.luv-mb-8 {
+  margin-bottom: 8rem !important;
+}
+.luv-mb-9 {
+  margin-bottom: 9rem !important;
+}
+.luv-mb-10 {
+  margin-bottom: 10rem !important;
 }
 // header上的logo大小
 .luv-header-logo {

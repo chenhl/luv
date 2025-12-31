@@ -752,6 +752,7 @@ function init_share() {
         elems[i].setAttribute('data-title', ogTitle);
     }
     $('#affiliate-link-url-input-js').val(ogUrl);
+    $('#product-link-url-input-js').val(ogUrl);
 }
 // 点赞：节流 1s 不推荐
 function handleFavoriteClickThrottle(e) {
@@ -1305,43 +1306,7 @@ $(function () {
     // ///////////////event/////////////////////
 
 
-    //affiliate-link-url-copy-js
-    $('#affiliate-link-url-copy-js').on('click', function (e) {
-        e.preventDefault();
-        var $this = $(this);
-        const textToCopy = $('#affiliate-link-url-input-js').val().trim();
-        if (!textToCopy) {
-            // 可选：提示用户链接为空
-            return;
-        }
-        // 复制文本到剪贴板
-        // 1 旧方案 提示 execCommand 已被弃用
-        // $('#affiliate-link-url-input-js').select();
-        // document.execCommand('copy'); // copy
-        // $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
-        // $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
-        // setTimeout(function () {
-        //     $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
-        //     $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
-        // }, 2000);
 
-        // 2 新方案 调用封装好的复制函数 js.js 封装的函数
-        copyTextToClipboard(textToCopy).then(function (success) {
-            // 切换“Copied”状态
-            $btn.find('.affiliate-link-url-copy-label-js').addClass('d-none');
-            $btn.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
-
-            setTimeout(function () {
-                $btn.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
-                $btn.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
-            }, 2000);
-            // 可选：处理失败情况
-            if (!success) {
-                console.error('Failed to copy link.');
-                // 例如：显示错误提示给用户
-            }
-        });
-    });
 
     ////////////////////////////////
     // attr value click
@@ -1593,39 +1558,7 @@ $(function () {
     });
     /////////////数量处理 end
 
-    // // qty minus ,plus
-    // $("#qty-minus-js").click(function () {
-    //     let v = parseInt($("#quantity").val());
-    //     v -= 1;
-    //     if (v <= 1) {
-    //         v = 1;
-    //     }
-    //     $("#quantity").val(v);
-    //     product_info.qty = v;
-    //     if (v <= 1) {
-    //         $(this).addClass("disabled");
-    //     } else {
-    //         $(this).removeClass("disabled");
-    //     }
-    // });
-    // // qty plus
-    // $("#qty-plus-js").click(function () {
-    //     let v = parseInt($("#quantity").val());
-    //     v += 1;
-    //     if (v >= max_qty) {
-    //         v = max_qty;
-    //     }
-    //     $("#quantity").val(v);
-    //     product_info.qty = v;
-
-    //     if (v >= max_qty) {
-    //         $(this).addClass("disabled");
-    //     } else {
-    //         $(this).removeClass("disabled");
-    //     }
-    // });
-
-    //show share bar
+    //################# 分享 start #################
     $("#product-detail-icon-share-js").click(function (e) {
         e.preventDefault();
         init_share();
@@ -1641,6 +1574,52 @@ $(function () {
         // // remove trigger source
         // $(this).removeData('trigger-source');
     });
+    //affiliate-link-url-copy-js
+    $(document).on('click', '.btn-copy-link-js', function (e) {
+        e.preventDefault();
+        // 1 获取目标元素
+        const $btn = $(this);
+        const targetId = $btn.data('clipboard-target'); // 获取 data-clipboard-target 值
+        const $input = $('#' + targetId);
+        if (!$input.length) {
+            console.warn('Copy button target not found:', targetId);
+            return;
+        }
+        const textToCopy = $input.val().trim();
+        console.log(textToCopy);
+        if (!textToCopy) {
+            // 可选：提示用户链接为空
+            return;
+        }
+        // 复制文本到剪贴板
+        // 1 旧方案 提示 execCommand 已被弃用
+        // $('#affiliate-link-url-input-js').select();
+        // document.execCommand('copy'); // copy
+        // $this.find('.affiliate-link-url-copy-label-js').addClass('d-none');
+        // $this.find('.affiliate-link-url-copy-label-copied-js').removeClass('d-none');
+        // setTimeout(function () {
+        //     $this.find('.affiliate-link-url-copy-label-js').removeClass('d-none');
+        //     $this.find('.affiliate-link-url-copy-label-copied-js').addClass('d-none');
+        // }, 2000);
+
+        // 2 新方案 调用封装好的复制函数 js.js 封装的函数
+        copyTextToClipboard(textToCopy).then(function (success) {
+            // 切换“Copied”状态
+            $btn.find('.copy-label-js').addClass('d-none');
+            $btn.find('.copy-label-copied-js').removeClass('d-none');
+
+            setTimeout(function () {
+                $btn.find('.copy-label-js').removeClass('d-none');
+                $btn.find('.copy-label-copied-js').addClass('d-none');
+            }, 2000);
+            // 可选：处理失败情况
+            if (!success) {
+                // console.error('Failed to copy link.');
+                // 例如：显示错误提示给用户
+            }
+        });
+    });
+    //################# 分享 end #################
 
     // custom measurement helper
     $(".product-info-attr-js").on("click", "button.measurement-trigger-js", function (e) {
