@@ -180,7 +180,7 @@ $(document).ready(function () {
                 }
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
-                alert('Oops! Something went wrong. Please try again later.');
+                alert('Oops! Something went wrong. Please try again in a few minutes.');
                 //enable button
                 $btn.prop('disabled', false).text(translations.save);
             }

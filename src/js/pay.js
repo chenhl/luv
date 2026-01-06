@@ -278,7 +278,7 @@ function setupUseePay() {
                     });
                 },
                 error: function (XMLHttpRequest, textStatus, errorThrown) {
-                    alert('Oops! Something went wrong. Please try again later.');
+                    alert('Oops! Something went wrong. Please try again in a few minutes.');
                     //enable button
                     $submitBtn.prop('disabled', false).text(translations.payOrderText);
                 }
@@ -462,11 +462,11 @@ $(document).ready(function () {
     // ========== country modal 收货地址和账单地址的公共方法===========结束
 
     // billing address 信息表单验证
-    $(document).on('focus', '#billing-address-form input', function () {
+    $(document).on('focus', '#billing-address-form input:not([readonly])', function () {
         $(this).removeClass("is-invalid");
         // feedback
         $(this).next().removeClass("d-block");
-    }).on('blur', '#billing-address-form input', function () {
+    }).on('blur', '#billing-address-form input:not([readonly])', function () {
         if (!checkAddressInput($(this))) {
             $(this).addClass("is-invalid");
             // feedback
@@ -514,7 +514,7 @@ $(document).ready(function () {
                 }
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
-                alert('Oops! Something went wrong. Please try again later.');
+                alert('Oops! Something went wrong. Please try again in a few minutes.');
                 //enable button
                 $btn.prop('disabled', false).text(translations.save);
             }

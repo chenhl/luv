@@ -123,6 +123,16 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
+.luv-bg-order-status { 
+  background-image: url('../images/bg-100.png');
+  background-size: cover;
+  background-position: center;
+}
+.luv-bg-coupon-center-banner { 
+  background-image: url('../images/coupon-center-banner.jpg');
+  background-size: cover;
+  background-position: center;
+}
 .luv-bg-coupon-unavailable-flag { 
   background-image: url('../images/coupon-bg-unavailable.png');
   background-size: cover;
@@ -139,11 +149,7 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
-.luv-bg-banner1 { 
-  background-image: url('../images/bg-banner1.png');
-  background-size: cover;
-  background-position: center;
-}
+
 .luv-bg-thin { 
   background: rgba(0, 0, 0, .4);
   color: #fff;

@@ -6,7 +6,22 @@ function isSurportedLoading() {
     return 'loading' in HTMLImageElement.prototype;
 }
 // console.log(isSurportedLoading()); // if true, loading attribute is supported
-
+function isLikelyMobile() {
+    const ua = navigator.userAgent;
+    // 包含 'Mobile' 或 'Tablet' 可捕获更多设备（包括部分国产浏览器）
+    if (/Android|iPhone|BlackBerry|Opera Mini|IEMobile|Mobile|Tablet/i.test(ua)) {
+        return true;
+    }
+    // 特别处理 iPad (iOS 13+)
+    if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
+        return true;
+    }
+    // 兜底：极小屏幕 + 触摸（谨慎）
+    if (screen.width <= 768 && 'ontouchstart' in window) {
+        return true;
+    }
+    return false;
+}
 /////////////////// url操作 start
 // 添加命名空间对象 对象字面量 
 // 无状态的工具函数集合
@@ -51,53 +66,94 @@ const UrlUtils = {
     }
 };
 /////////////////// url操作 end
-///////////////// time zone
+///////////////// time zone //
+//完全可以将这段 JS 直接放在商品详情页（或广告落地页）运行，并且这是一个非常合理、安全、高效的做法。 
 window.UserTimezone = {
-    // 防重复标记
-    _sent: false,
+    // 存储用的 key
+    _storageKeyReported: 'utz_reported',
+    _storageKeyTimezone: 'utz_value',
 
-    // 获取时区（现代浏览器）
+    // 安全读取 localStorage
+    _getStorage: function (key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            return null;
+        }
+    },
+
+    // 安全写入 localStorage
+    _setStorage: function (key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            // ignore if storage is disabled or full
+        }
+    },
+
+    // 判断是否需要上报：从未上报 或 时区已变更
+    _shouldReport: function (currentTz) {
+        if (!currentTz) return false;
+
+        var lastTz = this._getStorage(this._storageKeyTimezone);
+        var hasReported = this._getStorage(this._storageKeyReported) === '1';
+
+        return !hasReported || lastTz !== currentTz;
+    },
+
+    // 标记为已上报（无论成功失败都标记，避免重复请求）
+    _markAsReported: function (timezone) {
+        this._setStorage(this._storageKeyReported, '1');
+        if (timezone) {
+            this._setStorage(this._storageKeyTimezone, timezone);
+        }
+    },
+    // 获取浏览器时区（如 "Asia/Shanghai"）
     getBrowserTimezone: function () {
         try {
             if (window.Intl && Intl.DateTimeFormat) {
                 return Intl.DateTimeFormat().resolvedOptions().timeZone;
             }
         } catch (e) {
-            console.warn('Failed to get timezone:', e);
+            // console.warn('Failed to get timezone:', e);
         }
         return null;
     },
-
     // 上报到后端
     sendToServer: function (timezone) {
-        if (this._sent || !timezone) return;
+        if (!timezone) return;
+
         var data = {
             timezone: timezone
         };
         if (typeof csrfName !== 'undefined') {
             data[csrfName] = csrfVal; // Yii2 CSRF 保护
         }
+
         $.ajax({
             url: '/api/member/set-timezone',
             method: 'POST',
             data: data,
             timeout: 5000,
             success: function (res) {
-                if (res.success) {
-                    UserTimezone._sent = true;
-                    console.log('User timezone reported:', timezone);
+                if (res && res.success) {
+                    UserTimezone._markAsReported(timezone);
+                } else {
+                    // 后端返回失败（如非法时区），也标记避免重试
+                    UserTimezone._markAsReported(timezone);
                 }
             },
             error: function () {
-                // 失败不重试，避免影响用户体验
+                // 网络错误或超时：默认不再重试，标记为已尝试
+                UserTimezone._markAsReported(timezone);
             }
         });
     },
 
-    // 初始化
+    // 初始化逻辑
     init: function () {
         var tz = this.getBrowserTimezone();
-        if (tz) {
+        if (tz && this._shouldReport(tz)) {
             this.sendToServer(tz);
         }
     }
@@ -235,62 +291,8 @@ function fallbackCopyText(text) {
     }
 }
 
-// 防重复 + 自动上报 用户时区
-// 只在需要时发，比如进入结账页查看coupon时，才需要上报用户时区
-window.UserTimezone = {
-    // 防重复标记
-    _sent: false,
-
-    // 获取时区（现代浏览器）
-    getBrowserTimezone: function () {
-        try {
-            if (window.Intl && Intl.DateTimeFormat) {
-                return Intl.DateTimeFormat().resolvedOptions().timeZone;
-            }
-        } catch (e) {
-            console.warn('Failed to get timezone:', e);
-        }
-        return null;
-    },
-
-    // 上报到后端
-    sendToServer: function (timezone) {
-        if (this._sent || !timezone) return;
-        var data = {
-            timezone: timezone
-        };
-        if (typeof csrfName !== 'undefined') {
-            data[csrfName] = csrfVal; // Yii2 CSRF 保护
-        }
-        $.ajax({
-            url: '/api/member/set-timezone',
-            method: 'POST',
-            data: data,
-            timeout: 5000,
-            success: function (res) {
-                if (res.success) {
-                    UserTimezone._sent = true;
-                    console.log('User timezone reported:', timezone);
-                }
-            },
-            error: function () {
-                // 失败不重试，避免影响用户体验
-            }
-        });
-    },
-
-    // 初始化
-    init: function () {
-        var tz = this.getBrowserTimezone();
-        if (tz) {
-            this.sendToServer(tz);
-        }
-    }
-};
-
-
 $(function () {
-
+    //
     if (typeof memberCheckUrl !== 'undefined') {
         const ajax_params = {};
         if (typeof product_id !== 'undefined') {
@@ -366,7 +368,7 @@ $(function () {
                 }
             },
             error: function (error) {
-                alert('Oops! Something went wrong. Please try again later.');
+                alert('Oops! Something went wrong. Please try again in a few minutes.');
                 //enable button
                 $btn.prop('disabled', false);
             }

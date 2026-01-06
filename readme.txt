@@ -22,6 +22,14 @@ terser 负责压缩js
     terser src/js/order-address.js -o dist/js/order-address.min.js
     terser src/js/cart.js -o dist/js/cart.min.js
     terser src/js/pay.js -o dist/js/pay.min.js
+    terser src/js/coupon.js -o dist/js/coupon.min.js
+    terser src/js/u-coupon.js -o dist/js/u-coupon.min.js
+    terser src/js/u-address.js -o dist/js/u-address.min.js
+    terser src/js/u-billing-address.js -o dist/js/u-billing-address.min.js
+    terser src/js/u-shipping-address.js -o dist/js/u-shipping-address.min.js
+    terser src/js/u-order.js -o dist/js/u-order.min.js
+    terser src/js/u-order-detail.js -o dist/js/u-order-detail.min.js
+    terser src/js/u-profile.js -o dist/js/u-profile.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it

@@ -23,13 +23,12 @@ $(document).ready(function () {
         }
     });
     $passwordInput.on('input', function () {
-        // var password = $(this).val().trim();
-        // $('#btn-clear-password-js').toggleClass('d-none', !password);
+        const messageEl = $('#password-message-js');
+        hideError(messageEl, $passwordInput);
     });
     $passwordInput.on('blur', function () {
         const password = $(this).val().trim();
         const messageEl = $('#password-message-js');
-
         if (!password) {
             showError(messageEl, translations.passwordRequired, $passwordInput);
         } else {
@@ -37,7 +36,8 @@ $(document).ready(function () {
         }
     });
     $confirmationInput.on('input', function () {
-        // var confirmation = $(this).val().trim();
+        const messageEl = $('#confirmation-message-js');
+        hideError(messageEl, $confirmationInput);
     });
     $confirmationInput.on('blur', function () {
         const confirmation = $(this).val().trim();

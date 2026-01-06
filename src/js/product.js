@@ -1090,12 +1090,28 @@ function paypalBuynowCreatePayment() {
 
 // $(document).ready(function() {
 $(function () {
-
     //////////////////// init ////////////////////
-    // lazyload();
-    const lazyLoadInstance = new LazyLoad({
-        // elements_selector: ".lazy"
-    });
+     // 用户时区上报（安全调用）
+    if (typeof UserTimezone !== 'undefined' && 
+        typeof UserTimezone.init === 'function') {
+        try {
+            UserTimezone.init();
+        } catch (e) {
+            // console.error('Failed to init UserTimezone:', e);
+        }
+    }
+    // lazyload 初始化 这个必须有，不然图片不显示
+    if (typeof LazyLoad !== 'undefined') {
+        try {
+            const lazyLoadInstance = new LazyLoad({
+                // elements_selector: ".lazy"
+            });
+        } catch (e) {
+            // console.error('LazyLoad init failed:', e);
+        }
+    }
+    //////////////////// init ////////////////////
+    
     //监听数据变化，自动刷新 UI
     $(document).on('product:updated', (e, info) => {
         renderProductUI(info);
@@ -1182,7 +1198,7 @@ $(function () {
                 // 手动追加 HTML 内容
                 $(this).append(body.html);
                 // 更新懒加载
-                if (lazyLoadInstance) {
+                if (typeof lazyLoadInstance !== 'undefined') {
                     lazyLoadInstance.update();
                 }
                 // console.log('Loaded page via AJAX:', path);
@@ -1473,7 +1489,7 @@ $(function () {
             if (imperialHeight) {
                 imperialHeight.removeClass('d-none');
                 metricHeight.addClass('d-none');
-                weightUnitLabel.text('lb');
+                weightUnitLabel.text('lbs');
             }
             $cus_units.each(function () {
                 $(this).text('in');

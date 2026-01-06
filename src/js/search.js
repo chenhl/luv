@@ -13,15 +13,17 @@ $(document).ready(function () {
     const lazyLoadInstance = new LazyLoad({
         // elements_selector: ".lazy"
     });
-    // console.error('test');
+
+    // 直接访问搜索页面
     // search history
     const params = UrlUtils.getCurrentParams();
     const q = params.get('q');
     const p = params.get('p');
     if (q) {
         if (!p || p == 1) {
-            //save
+            //save local storage
             saveSearchToLocalStorage(q);
+            //服务器端保存
             saveOneSearchHistory(q, saveSearchHistoryUrl);
         }
     }
@@ -145,7 +147,7 @@ $(document).ready(function () {
             // 手动追加 HTML 内容
             $(this).append(body.html);
             // 更新懒加载
-            if (lazyLoadInstance) {
+            if (typeof lazyLoadInstance !== 'undefined') {
                 lazyLoadInstance.update();
             }
             // console.log('Loaded page via AJAX:', path);

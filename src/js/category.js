@@ -27,11 +27,15 @@ $(document).ready(function () {
     });
     // Apply filter
     $(document).on('click', '#apply-filter-js', function () {
-        var url = new URL(category_url, window.location.origin);
-        var params = new URLSearchParams();
+        // var url = new URL(category_url, window.location.origin);
+        // var params = new URLSearchParams();
+        var params = {};
         // Keyword
         var keyword = $('#filter-keyword-js').val().trim();
-        if (keyword) params.set('q', keyword);
+        if (keyword) {
+            // params.set('q', keyword);
+            params['q'] = keyword;
+        }
 
         // Price
         var begin = $('#filter-price-min-js').val().trim();
@@ -43,7 +47,8 @@ $(document).ready(function () {
         if ((begin && priceValid(begin)) || (end && priceValid(end))) {
             let min = begin && priceValid(begin) ? parseFloat(begin) : 0;
             let max = end && priceValid(end) ? parseFloat(end) : 0;
-            params.set('price', min + '-' + max);
+            // params.set('price', min + '-' + max);
+            params['price'] = min + '-' + max;
         }
 
         // Attributes: sync selected_attr_values_map → build query
@@ -54,16 +59,17 @@ $(document).ready(function () {
                 selectedIds.push($(this).data('value-id'));
             });
             if (selectedIds.length > 0) {
-                params.set(attrCode, selectedIds.join(','));
+                // params.set(attrCode, selectedIds.join(','));
+                params[attrCode] = selectedIds.join(',');
             }
         });
-
-        url.search = params.toString();
-        // url_search = url.search;
-        window.location.href = url.toString();
+        // url.search = params.toString();
+        // window.location.href = url.toString();
+        const finalUrl = UrlUtils.mergeParams(category_url, params);
+        window.location.href = finalUrl;
     });
 
-    // Toggle filter value selection
+    // Toggle filter value selection 多选
     $(document).on('click', '.filter-value-item-js', function () {
         var $item = $(this);
         var attrCode = $item.closest('.filter-attr-js').data('attr-code');
@@ -97,6 +103,7 @@ $(document).ready(function () {
     // 移动端专用无限滚动配置 - 支持 AJAX
     $('#product-list-more').infiniteScroll({
         // 路径配置
+        //TODO:使用隐藏的分页地址是否有利于seo爬虫？
         path: function () {
             // console.log(url);
             if (this.loadCount < maxPage - 1) { // 限制加载次数
@@ -166,7 +173,7 @@ $(document).ready(function () {
     // append事件处理 https://infinite-scroll.com/events#append
     $('#product-list-more').on('append.infiniteScroll', function (event, body, path, items) {
         // 更新懒加载
-        if (lazyLoadInstance) {
+        if (typeof lazyLoadInstance !== 'undefined') {
             lazyLoadInstance.update();
         }
         // console.log(`Appended ${items.length} items from ${path}`);

@@ -106,8 +106,9 @@ function openAddressForm(addressId = null) {
     });
 }
 
+
 $(document).ready(function () {
-    // UserTimezone.init();
+    
     //form提交 生成订单
     $('#checkout-order-form').on('submit', function (e) {
         const $form = $(this);
@@ -334,11 +335,11 @@ $(document).ready(function () {
 
 
     // address 信息表单验证
-    $(document).on('focus', '#address-form input', function () {
+    $(document).on('focus', '#address-form input:not([readonly])', function () {
         $(this).removeClass("is-invalid");
         // feedback
         $(this).next().removeClass("d-block");
-    }).on('blur', '#address-form input', function () {
+    }).on('blur', '#address-form input:not([readonly])', function () {
         if (!checkAddressInput($(this))) {
             $(this).addClass("is-invalid");
             // feedback
@@ -357,7 +358,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true).text(translations.savIng);
 
         var addressData = collectAddressData(); //收集表单数据
-        console.log(addressData);
+        // console.log(addressData);
         if (!addressData.success) {
             //enable button
             $(this).prop('disabled', false).text(translations.save);
@@ -390,7 +391,7 @@ $(document).ready(function () {
                 }
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
-                alert('Oops! Something went wrong. Please try again later.');
+                alert('Oops! Something went wrong. Please try again in a few minutes.');
                 //enable button
                 $btn.prop('disabled', false).text(translations.save);
             }
@@ -538,7 +539,7 @@ $(document).ready(function () {
                 $("#coupon-code-js").val('');
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
-                alert('Oops! Something went wrong. Please try again later.');
+                alert(translations.systemError);
                 //enable button
                 $btn.prop('disabled', false).text(translations.apply);
             }
