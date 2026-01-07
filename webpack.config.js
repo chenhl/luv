@@ -9,9 +9,14 @@ const loader = require('sass-loader')
 
 module.exports = {
   mode: 'development',
-  entry: './src/js/main.js',
+  entry: { //纯样式
+    // main: './src/js/main.js',
+    style: './src/scss/styles.scss',
+    aff_style: './src/scss/aff_style.scss'
+  },
   output: {
-    filename: 'main.js',
+    // filename: 'main.js',
+    // filename: 'js/[name].js',
     path: path.resolve(__dirname, 'dist'),
     // clean: true, // 每次构建前清理 dist 目录
   },
@@ -21,9 +26,13 @@ module.exports = {
     hot: true
   },
   plugins: [
-    new HtmlWebpackPlugin({ template: './src/index.html' }),
+    new HtmlWebpackPlugin({ 
+      template: './src/index.html',
+      chunks: ['style', 'aff_style'] // 指定要包含的入口文件
+    }),
     new MiniCssExtractPlugin({
-      filename: 'css/style.css'       // 输出的 CSS 文件路径和名称
+      // filename: 'css/style.css'       // 输出的 CSS 文件路径和名称
+      filename: 'css/[name].css'       // 输出的 CSS 文件路径和名称
     }),
     //复制所有 images 到 dist
     new CopyPlugin({

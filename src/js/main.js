@@ -1,3 +1,4 @@
+// src/js/main.js
 // Import our custom CSS
 import '../scss/styles.scss';
 
@@ -9,3 +10,4 @@ import '../scss/styles.scss';
 //   .forEach(popover => {
 //     new Popover(popover)
 //   })
+import '../scss/aff_style.scss';

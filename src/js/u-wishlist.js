@@ -61,7 +61,7 @@ $(document).ready(function () {
     });
 
     // ==== 2. 分享按钮 =====
-    $(".product-detail-icon-share-js").click(function (e) {
+    $(document).on('click', '.product-detail-icon-share-js', function (e) {
         e.preventDefault();
         init_share($(this));
         // show modal
