@@ -96,7 +96,7 @@ window.TrackingPolicy = {
     })(),
 
     isAllowed: (function () {
-        
+
         // 用户明确拒绝
         if (getCookie('tracking_consent') === '0') return false;
         // 用户已同意
@@ -385,9 +385,10 @@ function getBrowserData() {
 }
 function getBrowserDataWithBowser() {
     var browserData = getBrowserData();
-    if (typeof Bowser !== 'undefined' && typeof Bowser.getParser === 'function') {
+    //注意大小写
+    if (typeof bowser !== 'undefined' && typeof bowser.getParser === 'function') {
         try {
-            var parser = Bowser.getParser(navigator.userAgent);
+            var parser = bowser.getParser(navigator.userAgent);
             var result = parser.getResult();
             // 浏览器
             browserData.browserName = result.browser?.name || 'Unknown';
@@ -401,10 +402,10 @@ function getBrowserDataWithBowser() {
             browserData.deviceVendor = result.platform?.vendor || ''; //如 Apple, Samsung
             browserData.engineName = result.engine?.name || 'Unknown';
         } catch (e) {
-            TrackingPolicy.error('Bowser parse error:', e);
+            TrackingPolicy.error('bowser parse error:', e);
         }
     }
-    // Bowser 未加载 或 解析失败，尝试简单 UA 判断
+    // bowser 未加载 或 解析失败，尝试简单 UA 判断
     if (typeof browserData.browserName === 'undefined') {
         var ua = navigator.userAgent;
         browserData.browserName = 'Unknown';
@@ -521,6 +522,10 @@ window.PageTracker = {
             return false;
         }
         if (typeof this._config.payload.data === 'undefined') {
+            return false;
+        }
+        // php 返回的[]，尽量避免：比如可以search页page>1时，整个config就不存在。
+        if (Array.isArray(this._config.payload.data) && this._config.payload.data.length === 0) {
             return false;
         }
         // return this._config?.payload?.data != null; // 判断 data 是否存在
