@@ -1091,15 +1091,15 @@ function paypalBuynowCreatePayment() {
 // $(document).ready(function() {
 $(function () {
     //////////////////// init ////////////////////
-     // 用户时区上报（安全调用）
-    if (typeof UserTimezone !== 'undefined' && 
-        typeof UserTimezone.init === 'function') {
-        try {
-            UserTimezone.init();
-        } catch (e) {
-            // console.error('Failed to init UserTimezone:', e);
-        }
-    }
+    //  // 用户时区上报（安全调用） 移动到公共js.js 中，根据不同页面注册额userTimezoneUrl变量进行调用
+    // if (typeof UserTimezone !== 'undefined' && 
+    //     typeof UserTimezone.init === 'function') {
+    //     try {
+    //         UserTimezone.init();
+    //     } catch (e) {
+    //         // console.error('Failed to init UserTimezone:', e);
+    //     }
+    // }
     // lazyload 初始化 这个必须有，不然图片不显示
     if (typeof LazyLoad !== 'undefined') {
         try {
@@ -1598,11 +1598,10 @@ $(function () {
         const targetId = $btn.data('clipboard-target'); // 获取 data-clipboard-target 值
         const $input = $('#' + targetId);
         if (!$input.length) {
-            console.warn('Copy button target not found:', targetId);
+            // console.warn('Copy button target not found:', targetId);
             return;
         }
         const textToCopy = $input.val().trim();
-        console.log(textToCopy);
         if (!textToCopy) {
             // 可选：提示用户链接为空
             return;

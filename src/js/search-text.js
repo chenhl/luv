@@ -1,28 +1,22 @@
 function renderSearchHistory() {
-    let searchHistory = getCompatibleSearchHistoryFromLocalStorage();
-    if (searchHistory.data.length === 0) {
+    let searchHistory = SearchHistory.getKeywords();
+    if (searchHistory.length === 0) {
         // $('#search-history-js').addClass('d-none');
         return;
     }
-    const $searchHistoryList = $('#search-history-items-js');
+    const $searchHistoryList = $('#search-history-items-js').empty();
     // render search history list
-    searchHistory.data.forEach(function (keyword) {
+    searchHistory.forEach(function (keyword) {
         // create li
         const $listItem = $('<li>', {
             'class': 'q-js py-2 px-2',
-            'text': keyword
+            'text': keyword // text 安全
         });
-        // // item click event
-        // $listItem.click(function() {
-
-        // });
         // add li to ul
-        $searchHistoryList.append($listItem);
+        $searchHistoryList.append($listItem); //多次append ,但只有20条，不存在性能问题
     });
-
     $('#search-history-js').removeClass('d-none');
 }
-
 $(function () {
     // // test
     // var url = 'http://localhost:8080/search/index?a=b&q=test1111';
@@ -36,13 +30,12 @@ $(function () {
 
 
     // pull history from remote
-    pullSearchHistory(pullSearchHistoryUrl);
+    SearchHistory.pullFromServer(pullSearchHistoryUrl);
     // render history
     renderSearchHistory();
 
     $("#removeDialog .btn-primary").click(function () {
-        removeSearchFromLocalStorage();
-        removeHistory(removeHistoryUrl);
+        SearchHistory.clear(removeHistoryUrl);
         location.reload();
     });
 
@@ -68,11 +61,14 @@ $(function () {
     });
     // submit search form
     $('#searchForm').on('submit', function (e) {
-        if (!$input.val().trim()) {
+        const q = $input.val().trim();
+        if (!q) {
             e.preventDefault();
             $input.focus();
             return false;
         }
+        // save search history 游客的url为空，不保存到远程
+        SearchHistory.save(q, saveSearchHistoryUrl);
     });
 
     $(".q-js").click(function () {

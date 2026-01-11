@@ -22,7 +22,123 @@ function isLikelyMobile() {
     }
     return false;
 }
-/////////////////// url操作 start
+/**
+ * 判断是否为非人类流量（爬虫 / 自动化工具）
+ * 依赖全局 isbot() 函数（由 isbot 库提供）
+ * 参考：https://github.com/JamesPic/IsBot
+ * 注：此函数依赖 isbot 库
+ * 功能：
+ * - 拦截主流搜索引擎爬虫（Googlebot, Bingbot, Yandex, Baidu 等）
+ * - 拦截 Headless 浏览器（Puppeteer, Selenium, Cypress 等）
+ * - 检测异常环境（零屏幕尺寸、超快加载等）
+ * 
+ * 使用方式：
+ *   if (isLikelyAutomated()) {
+ *     // 跳过埋点、分析、广告等
+ *   }
+ * 兼容性：IE11+ / Chrome / Firefox / Safari / Edge / 移动端 WebView
+ */
+function isLikelyAutomated() {
+    const ua = navigator.userAgent;
+
+    // === 1. 使用 isbot 检测搜索引擎与已知爬虫（权威列表）===
+    // isbot 返回 true 表示是 bot（包括 Googlebot, Bingbot, Applebot, Yandex, Baidu, Discordbot 等 200+）
+    if (typeof isbot === 'function' && isbot(ua)) {
+        return true;
+    } else {
+        // 1. 明确爬虫 UA（Googlebot, Bingbot 等）
+        if (/Googlebot|Bingbot|YandexBot|Baiduspider|DuckDuckBot|Slurp|Sogou|Applebot/i.test(ua)) {
+            return true;
+        }
+    }
+
+    // === 2. 自动化工具特征（isbot 不覆盖 WebDriver/Headless）===
+    if (
+        navigator.webdriver === true ||
+        /HeadlessChrome|PhantomJS|Selenium|Puppeteer|Cypress|Playwright/i.test(ua)
+    ) {
+        return true;
+    }
+
+    // === 3. 异常屏幕尺寸 ===
+    if (screen.width === 0 || screen.height === 0) {
+        return true;
+    }
+
+    // === 4. 超快加载检测（使用现代 Performance API）===
+    let domContentLoadedTime = null;
+
+    if (performance.getEntriesByType) {
+        const entries = performance.getEntriesByType('navigation');
+        if (entries.length > 0) {
+            domContentLoadedTime = entries[0].domContentLoadedEventEnd;
+        }
+    }
+
+    // 降级到 performance.timing（旧设备兼容）
+    if (domContentLoadedTime === null && performance.timing) {
+        domContentLoadedTime = performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart;
+    }
+
+    if (domContentLoadedTime !== null && domContentLoadedTime > 0 && domContentLoadedTime < 10) {
+        return true;
+    }
+
+    return false;
+}
+// =============== 1. 追踪策略控制中心 (GDPR + Debug) ===============
+window.TrackingPolicy = {
+    isDebug: (function () {
+        return (
+            window.location.search.indexOf('debug=1') > -1 ||
+            (typeof window.DEBUG_TRACKING !== 'undefined' && window.DEBUG_TRACKING)
+        );
+    })(),
+
+    isAllowed: (function () {
+        
+        // 用户明确拒绝
+        if (getCookie('tracking_consent') === '0') return false;
+        // 用户已同意
+        if (getCookie('tracking_consent') === '1') return true;
+
+        // 默认：允许（可根据业务改为 false）因为没有上面的cooke设置，所以默认是允许的
+        return true;
+    })(),
+
+    log: function (...args) {
+        if (this.isDebug) {
+            console.log('[Tracking]', ...args);
+        }
+    },
+
+    error: function (...args) {
+        console.error('[Tracking Error]', ...args);
+    }
+};
+// =============== 2. Cookie 工具 ===============
+//set cookie
+function setCookie(name, value, days) {
+    days = days || 30;
+    var expires = '';
+    // if (days) {
+    var date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = '; expires=' + date.toUTCString();
+    // }
+    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+    // const Days = 30;
+    // const exp = new Date();
+    // exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000);
+    // document.cookie = name + "=" + escape(value) + ";expires=" + exp.toGMTString();
+}
+
+//get cookies
+function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : null;
+}
+// =============== 3. URL 工具集 ===============
 // 添加命名空间对象 对象字面量 
 // 无状态的工具函数集合
 // 所有方法都是纯函数：输入 → 输出，没有副作用
@@ -54,19 +170,410 @@ const UrlUtils = {
         });
         return params.toString();
     },
-    // 从URL中获取指定参数值
-    getParam: (url, paramName) => {
+    /**
+     * Extracts the effective root domain (eTLD+1) from a host.
+     * Handles common public suffixes like .co.uk, .com.au, .github.io, etc.
+     * 
+     * Examples:
+     *   'www.example.com'        → 'example.com'
+     *   'shop.example.co.uk'     → 'example.co.uk'
+     *   'user.github.io'         → 'github.io'
+     *   'a.b.example.com.au'     → 'example.com.au'
+     */
+    getEffectiveRootDomain: (host) => {
+        if (typeof host !== 'string') return null;
+        const parts = host.toLowerCase().split('.').filter(p => p.length > 0);
+        if (parts.length < 2) return host;
+
+        // Common two-part public suffixes (extend as needed for your markets)
+        const TWO_PART_SUFFIXES = new Set([
+            // UK
+            'co.uk'
+            // , 'org.uk', 'me.uk', 'ltd.uk', 'plc.uk',
+            // 'net.uk', 'sch.uk', 'ac.uk', 'gov.uk',
+            // // Australia
+            // 'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au',
+            // // New Zealand
+            // 'co.nz', 'net.nz', 'org.nz', 'govt.nz',
+            // // South Africa
+            // 'co.za', 'org.za', 'net.za',
+            // // Japan
+            // 'co.jp', 'ne.jp', 'or.jp', 'ac.jp', 'go.jp',
+            // // Brazil
+            // 'com.br', 'net.br', 'org.br', 'edu.br',
+            // // Platform domains (common in dev/staging)
+            // 'github.io', 'gitlab.io', 'bitbucket.io',
+            // 'netlify.app', 'vercel.app', 'pages.dev'
+        ]);
+
+        // Check for two-part suffix first (e.g., co.uk)
+        if (parts.length >= 3) {
+            const lastTwo = parts.slice(-2).join('.');
+            if (TWO_PART_SUFFIXES.has(lastTwo)) {
+                return parts.slice(-3).join('.'); // e.g., example.co.uk
+            }
+        }
+        // Fallback: assume standard two-part domain (example.com)
+        return parts.slice(-2).join('.');
+    },
+    isValidUrl: (url) => {
+        if (typeof url !== 'string' || !url.startsWith('https://')) {
+            return false;
+        }
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    },
+    /**
+     * Checks if candidateUrl belongs to the same effective root domain as mainUrl.
+     * 
+     * @param {string} mainUrl      - Your canonical site URL (e.g., 'https://mysite.co.uk')
+     * @param {string} candidateUrl - The URL to validate (e.g., referrer)
+     * @returns {boolean}
+     */
+    isSameDomain: (mainUrl, candidateUrl) => {
+        if (!UrlUtils.isValidUrl(mainUrl) || !UrlUtils.isValidUrl(candidateUrl)) {
+            return false;
+        }
+        try {
+            const mainHost = new URL(mainUrl).host;
+            const candidateHost = new URL(candidateUrl).host;
+
+            const mainRoot = UrlUtils.getEffectiveRootDomain(mainHost);
+            const candidateRoot = UrlUtils.getEffectiveRootDomain(candidateHost);
+
+            return mainRoot === candidateRoot;
+        } catch {
+            return false;
+        }
+    },
+
+    // 从URL中获取指定query参数值
+    /**
+     * 从查询字符串中安全获取参数值（自动解码）
+     * @param {string} name - 参数名
+     * @param {string} [url=window.location.href] - 可选 URL
+     * @returns {string} 解码后的值，未找到返回空字符串
+     */
+    getQueryParam: (name, url) => {
+        url = url || window.location.href;
+        try {
+            var params = new URL(url).searchParams;
+            return params.get(name) || '';
+        } catch (e) {
+            // Fallback for very old browsers (unlikely in EU/US mobile)
+            var regex = new RegExp('[?&]' + escapeRegExp(name) + '=([^&]*)');
+            var match = regex.exec(url);
+            if (match) {
+                return decodeURIComponent((match[1] || '').replace(/\+/g, ' '));
+            }
+            return '';
+        }
+    },
+
+    // ✅【新增】从路径中提取 "pretty" 参数值，如 /product/123/aff/alice → aff=alice
+    getPathParam: (key, path = window.location.pathname) => {
+        const parts = path.split('/').filter(Boolean); // 移除空段
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (parts[i] === key) {
+                // 自动解码（兼容 + 和 %xx）
+                try {
+                    return decodeURIComponent(parts[i + 1].replace(/\+/g, ' '));
+                } catch (e) {
+                    return parts[i + 1]; // fallback if decode fails
+                }
+            }
+        }
+        return '';
+    },
+
+    /**
+     * 构建参数url ?a=b&c=d
+     * 向 URL 添加或更新查询参数（自动编码 value）
+     * @param {string} param - 参数名
+     * @param {string} value - 参数值（将被 encodeURIComponent）
+     * @param {string} url - 原始 URL
+     * @returns {string} 新 URL
+     */
+    addQueryParam: (param, value, url) => {
+        try {
+            var urlObj = new URL(url, window.location.origin); // 支持相对路径
+            urlObj.searchParams.set(param, value); // 自动编码
+            return urlObj.href;
+        } catch (e) {
+            // Fallback
+            var hashSplit = url.split('#');
+            var baseUrl = hashSplit[0];
+            var hash = hashSplit[1] || '';
+            var regex = new RegExp('[?&]' + escapeRegExp(param) + '=([^&]*)');
+            var hasParam = regex.test(baseUrl);
+
+            var encodedValue = encodeURIComponent(value);
+            if (hasParam) {
+                baseUrl = baseUrl.replace(regex, function (match, p1, offset, str) {
+                    return match.charAt(0) + param + '=' + encodedValue;
+                });
+            } else {
+                var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+                baseUrl += separator + param + '=' + encodedValue;
+            }
+
+            return hash ? baseUrl + '#' + hash : baseUrl;
+        }
+    },
+    /**
+     * 构建友好 URL：/base/param/value/
+     * @param {string} param - 参数名（如 'aff'）
+     * @param {string} value - 值（将被 encodeURIComponent）
+     * @param {string} url - 原始 URL
+     * @returns {string} 新 URL
+     */
+    buildFriendlyUrl: (param, value, url) => {
         try {
             const urlObj = new URL(url, window.location.origin);
-            return urlObj.searchParams.get(paramName);
+            let pathname = urlObj.pathname;
+
+            // 转义 param 用于正则（防御性）
+            const safeParam = param.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // 移除已存在的 /param/xxx/ 段
+            const friendlyRegex = new RegExp(`/${safeParam}/[^/?#]+/?`);
+            pathname = pathname.replace(friendlyRegex, '');
+
+            // 移除结尾可能残留的 /param
+            const trailingRegex = new RegExp(`/${safeParam}$`);
+            pathname = pathname.replace(trailingRegex, '');
+
+            // 清理结尾斜杠
+            pathname = pathname.replace(/\/+$/, '');
+
+            // 添加新的友好段（自动编码 value）
+            pathname += `/${param}/${encodeURIComponent(value)}/`;
+
+            // 重建 URL
+            urlObj.pathname = pathname;
+            return urlObj.href;
+        } catch (error) {
+            console.error('UrlUtils.buildFriendlyUrl failed:', error, { param, value, url });
+            // Fallback: simple string manipulation (no encoding)
+            let cleanUrl = url.split('#')[0];
+            const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
+            cleanUrl = cleanUrl.replace(new RegExp(`/${param}/[^/?#]+/?`), '');
+            cleanUrl = cleanUrl.replace(new RegExp(`/${param}$`), '');
+            cleanUrl = cleanUrl.replace(/\/+$/, '');
+            return `${cleanUrl}/${param}/${value}/${hash}`;
+        }
+    }
+
+};
+/////////////////// url操作 end
+function getBrowserData() {
+    return {
+        deviceChannel: 'browser',
+        screenWidth: screen.width || 0,
+        screenHeight: screen.height || 0,
+        colorDepth: screen.colorDepth || 0,
+        language: (navigator.language || 'en').split('-')[0],
+        timezoneOffset: new Date().getTimezoneOffset(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown', // 新增时区字段
+        javaScriptEnabled: true,
+        userAgent: navigator.userAgent //保留原始 UA 用于 debug
+    }
+}
+function getBrowserDataWithBowser() {
+    var browserData = getBrowserData();
+    if (typeof Bowser !== 'undefined' && typeof Bowser.getParser === 'function') {
+        try {
+            var parser = Bowser.getParser(navigator.userAgent);
+            var result = parser.getResult();
+            // 浏览器
+            browserData.browserName = result.browser?.name || 'Unknown';
+            browserData.browserVersion = result.browser?.version || '';
+            // 操作系统
+            browserData.osName = result.os?.name || 'Unknown';
+            browserData.osVersion = result.os?.version || '';
+            // 平台
+            browserData.platform = result.platform?.type || 'desktop'; //mobile/desktop/tablet
+            // 设备厂商（如 Apple, Huawei）
+            browserData.deviceVendor = result.platform?.vendor || ''; //如 Apple, Samsung
+            browserData.engineName = result.engine?.name || 'Unknown';
         } catch (e) {
-            console.error('Invalid URL:', url);
-            return null;
+            TrackingPolicy.error('Bowser parse error:', e);
+        }
+    }
+    // Bowser 未加载 或 解析失败，尝试简单 UA 判断
+    if (typeof browserData.browserName === 'undefined') {
+        var ua = navigator.userAgent;
+        browserData.browserName = 'Unknown';
+        browserData.browserVersion = '';
+        if (/iPad|iPhone|iPod/.test(ua)) {
+            browserData.osName = 'iOS';
+            browserData.osVersion = '';
+            browserData.platform = 'mobile';
+        } else if (/Android/.test(ua)) {
+            browserData.osName = 'Android';
+            browserData.osVersion = '';
+            browserData.platform = 'mobile';
+        }
+        browserData.deviceVendor = '';
+        browserData.engineName = 'Unknown';
+    }
+
+    return browserData;
+}
+// =============== 4. Affiliate Tracker ===============
+window.AffiliateTracker = {
+    _config: null,
+    _hasRun: false,
+    _getBrowserData: function () {
+        return getBrowserDataWithBowser();
+    },
+
+    _shouldTrack: function (aff, cookieAff) {
+        if (!aff) return false;
+        var rule = this._config.affiliate_credit;
+        if (rule === 'first' && cookieAff) return false;
+        if (rule === 'last' && cookieAff && cookieAff === aff) return false;
+        return true;
+    },
+
+    _sendToServer: function (aff) {
+        var payload = {
+            event: 'affiliate',
+            browser: this._getBrowserData(),
+            data: {
+                aff: aff,
+                landing_url: document.URL,
+                referrer_url: document.referrer
+            }
+        };
+
+        TrackingPolicy.log('Sending affiliate click:', aff, payload);
+
+        //fetch 在 IE11 不支持。如果你需要兼容 IE11，请改回 $.ajax 或加 polyfill。
+        fetch(this._config.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+        })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (data.visit_id > 0) {
+                    setCookie('luv_aff', data.aff, this._config.cookie_duration);
+                    setCookie('luv_visit', data.visit_id, this._config.cookie_duration);
+                    TrackingPolicy.log('Affiliate tracked. Visit ID:', data.visit_id);
+                }
+            }
+                .bind(this))
+            .catch(function (err) {
+                TrackingPolicy.error('Affiliate tracking failed:', err);
+            });
+    },
+
+    init: function () {
+        if (this._hasRun) return;
+        this._hasRun = true;
+
+        if (!TrackingPolicy.isAllowed) {
+            TrackingPolicy.log('Affiliate tracking skipped: consent declined.');
+            return;
+        }
+
+        if (typeof window.affiliate_config === 'undefined') {
+            return;
+        }
+        // ✅ 使用独立的自动化检测函数检测非人类流量
+        if (isLikelyAutomated()) {
+            TrackingPolicy.log('Automated traffic detected, skipping tracking.');
+            return;
+        }
+        this._config = window.affiliate_config;
+
+        var aff = UrlUtils.getQueryParam(this._config.affiliate_keyword) ||
+            UrlUtils.getPathParam(this._config.affiliate_keyword);
+        var cookieAff = getCookie('luv_aff');
+
+        if (this._shouldTrack(aff, cookieAff)) {
+            this._sendToServer(aff);
+        } else {
+            TrackingPolicy.log('Affiliate skipped:', { aff, cookieAff, rule: this._config.affiliate_credit });
         }
     }
 };
-/////////////////// url操作 end
-///////////////// time zone //
+// =============== 4. Search or Product Page Tracker ===============
+window.PageTracker = {
+    _config: null,
+    _hasRun: false,
+    _getBrowserData: function () {
+        return getBrowserDataWithBowser();
+    },
+
+    _shouldTrack: function () {
+        // 判断 data 是否存在
+        if (typeof this._config.payload === 'undefined') {
+            return false;
+        }
+        if (typeof this._config.payload.data === 'undefined') {
+            return false;
+        }
+        // return this._config?.payload?.data != null; // 判断 data 是否存在
+        return true;
+    },
+
+    _sendToServer: function () {
+        var payload = this._config.payload;
+        payload.browser = this._getBrowserData();
+        TrackingPolicy.log('Sending page view:', payload);
+
+        fetch(this._config.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+        })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                TrackingPolicy.log('Page tracked.');
+            }
+                .bind(this))
+            .catch(function (err) {
+                TrackingPolicy.error('Page tracking failed:', err);
+            });
+    },
+
+    init: function () {
+        if (this._hasRun) return;
+        this._hasRun = true;
+
+        if (typeof window.trace_config === 'undefined') {
+            return;
+        }
+        // ✅ 使用独立的自动化检测函数
+        if (isLikelyAutomated()) {
+            TrackingPolicy.log('Automated traffic detected, skipping tracking.');
+            return;
+        }
+
+        this._config = window.trace_config;
+
+        if (this._shouldTrack()) {
+            this._sendToServer();
+        } else {
+            TrackingPolicy.log('Page tracking skipped:', { config: this._config });
+        }
+    }
+};
+// =============== 5. User Timezone Reporter ===============
 //完全可以将这段 JS 直接放在商品详情页（或广告落地页）运行，并且这是一个非常合理、安全、高效的做法。 
 window.UserTimezone = {
     // 存储用的 key
@@ -115,46 +622,53 @@ window.UserTimezone = {
                 return Intl.DateTimeFormat().resolvedOptions().timeZone;
             }
         } catch (e) {
-            // console.warn('Failed to get timezone:', e);
+            TrackingPolicy.error('Timezone detection failed:', e);
         }
         return null;
     },
     // 上报到后端
     sendToServer: function (timezone) {
         if (!timezone) return;
-
+        TrackingPolicy.log('Reporting timezone:', timezone);
         var data = {
             timezone: timezone
         };
         if (typeof csrfName !== 'undefined') {
             data[csrfName] = csrfVal; // Yii2 CSRF 保护
         }
-
         $.ajax({
-            url: '/api/member/set-timezone',
+            url: userTimezoneUrl,
             method: 'POST',
             data: data,
             timeout: 5000,
             success: function (res) {
                 if (res && res.success) {
-                    UserTimezone._markAsReported(timezone);
+                    window.UserTimezone._markAsReported(timezone);
                 } else {
                     // 后端返回失败（如非法时区），也标记避免重试
-                    UserTimezone._markAsReported(timezone);
+                    window.UserTimezone._markAsReported(timezone);
                 }
             },
             error: function () {
+                TrackingPolicy.error('Timezone report failed:', arguments);
                 // 网络错误或超时：默认不再重试，标记为已尝试
-                UserTimezone._markAsReported(timezone);
+                window.UserTimezone._markAsReported(timezone);
             }
         });
     },
 
     // 初始化逻辑
     init: function () {
+        if (!TrackingPolicy.isAllowed) {
+            TrackingPolicy.log('Timezone reporting skipped: consent declined.');
+            return;
+        }
+
         var tz = this.getBrowserTimezone();
         if (tz && this._shouldReport(tz)) {
             this.sendToServer(tz);
+        } else {
+            TrackingPolicy.log('Timezone not reported.', { tz, should: false });
         }
     }
 };
@@ -207,23 +721,6 @@ function check_pass(str) {
     }
 }
 
-//set cookie
-function setCookie(name, value) {
-    const Days = 30;
-    const exp = new Date();
-    exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000);
-    document.cookie = name + "=" + escape(value) + ";expires=" + exp.toGMTString();
-}
-
-//get cookies
-function getCookie(name) {
-    const arr = document.cookie.match(new RegExp("(^| )" + name + "=([^;]*)(;|$)"));
-    if (arr) {
-        return unescape(arr[2]);
-    } else {
-        return null;
-    }
-}
 // 依赖bootstrap Toast组件 bootstrap js
 function showToast(msg, element) {
     // const toastEl = document.getElementById('toast-js');
@@ -292,7 +789,22 @@ function fallbackCopyText(text) {
 }
 
 $(function () {
-    //
+    if (typeof affiliate_config !== 'undefined') {
+        try {
+            AffiliateTracker.init();
+        } catch (e) {
+            // console.error('Failed to init UserTimezone:', e);
+        }
+    }
+    // 用户时区上报（安全调用）
+    if (typeof userTimezoneUrl !== 'undefined') {
+        try {
+            UserTimezone.init();
+        } catch (e) {
+            // console.error('Failed to init UserTimezone:', e);
+        }
+    }
+    // 会员检查（安全调用）
     if (typeof memberCheckUrl !== 'undefined') {
         const ajax_params = {};
         if (typeof product_id !== 'undefined') {
@@ -333,12 +845,7 @@ $(function () {
         });
     }
 
-
-    // $(".span_click").click(function () {
-    //     url = $(this).attr('rel');
-    //     window.location.href = url;
-    // });
-    //ajax subscribe
+    //ajax 邮件订阅
     $("#subscribe_btn").click(function () {
         var $btn = $(this);
         //disable button
@@ -376,6 +883,167 @@ $(function () {
     });
 });
 
+//===============搜索历史search==========================
+window.SearchHistory = {
+    // 配置项
+    config: {
+        HISTORY_KEY: 'search_history',
+        MAX_LENGTH: 20,
+        SYNC_INTERVAL_MINUTES: 15,
+        KEYWORD_MAX_LENGTH: 100,
+        SAFE_KEYWORD_PATTERN: /^[\p{L}\p{N}\s.;:'"!?-]+$/u //废弃
+    },
+    //简单校验，判断是否为空字符串或超过最大长度
+    isValidKeyword: function (keyword) {
+        if (typeof keyword !== ' string') return false;
+        const t = keyword.trim();
+        return t.length > 0 && t.length <= this.config.MAX_KEYWORD_LENGTH;
+    },
+    //废弃 正则校验 不需要这么严格的校验
+    isValidKeywordWithRegex: function (keyword, maxLength) {
+        if (typeof keyword !== 'string') return false;
+        maxLength = maxLength || this.config.KEYWORD_MAX_LENGTH;
+        var trimmed = keyword.trim();
+        if (!trimmed || trimmed.length > maxLength) return false;
+        return this.config.SAFE_KEYWORD_PATTERN.test(trimmed);
+    },
+
+    // 本地存储读取（兼容旧版）
+    getLocalHistory: function () {
+        var raw = localStorage.getItem(this.config.HISTORY_KEY);
+        if (!raw) {
+            return { update_time: null, last_sync_time: null, data: [] };
+        }
+        try {
+            var history = JSON.parse(raw);
+            if (Array.isArray(history)) {
+                history = { update_time: null, last_sync_time: null, data: history };
+                localStorage.setItem(this.config.HISTORY_KEY, JSON.stringify(history));
+            }
+            if (!history.data || !Array.isArray(history.data)) history.data = [];
+            return history;
+        } catch (e) {
+            console.warn('Search history parse error, resetting.', e);
+            return { update_time: null, last_sync_time: null, data: [] };
+        }
+    },
+
+    // 保存到本地
+    saveToLocal: function (keyword) {
+        if (!this.isValidKeyword(keyword)) return false;
+        var h = this.getLocalHistory();
+        var k = keyword.trim();
+        h.data = h.data.filter(x => x !== k);
+        h.data.unshift(k);
+        if (h.data.length > this.config.MAX_LENGTH) {
+            h.data = h.data.slice(0, this.config.MAX_LENGTH);
+        }
+        h.update_time = new Date().toISOString();
+        localStorage.setItem(this.config.HISTORY_KEY, JSON.stringify(h));
+        return true;
+    },
+
+    // 从本地移除
+    removeFromLocal: function (keyword) {
+        if (keyword == null) {
+            localStorage.removeItem(this.config.HISTORY_KEY);
+            return;
+        }
+        var h = this.getLocalHistory();
+        var k = String(keyword).trim();
+        h.data = h.data.filter(x => x !== k);
+        h.update_time = new Date().toISOString();
+        localStorage.setItem(this.config.HISTORY_KEY, JSON.stringify(h));
+    },
+
+    // 是否需要同步
+    isSyncNeeded: function (localHistory) {
+        if (!localHistory || !localHistory.last_sync_time) return true;
+        var diff = (new Date() - new Date(localHistory.last_sync_time)) / (1000 * 60);
+        return diff > this.config.SYNC_INTERVAL_MINUTES;
+    },
+
+    // 合并服务端数据
+    mergeWithServer: function (serverKeywords) {
+        if (!Array.isArray(serverKeywords)) return;
+        var local = this.getLocalHistory();
+        local.last_sync_time = new Date().toISOString();
+
+        // 去重合并：优先保留本地顺序
+        var seen = {};
+        var merged = [];
+
+        // 先加本地（保证新在前）
+        local.data.forEach(k => {
+            if (this.isValidKeyword(k) && !seen[k]) {
+                seen[k] = true;
+                merged.push(k);
+            }
+        });
+
+        // 再加服务端（补漏）
+        serverKeywords.forEach(k => {
+            if (this.isValidKeyword(k) && !seen[k]) {
+                seen[k] = true;
+                merged.push(k);
+            }
+        });
+
+        local.data = merged.slice(0, this.config.MAX_LENGTH);
+        local.update_time = new Date().toISOString();
+        localStorage.setItem(this.config.HISTORY_KEY, JSON.stringify(local));
+    },
+
+    // 网络操作（保留 jQuery）
+    pullFromServer: function (url) {
+        var local = this.getLocalHistory();
+        if (!this.isSyncNeeded(local)) return;
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            timeout: 6000,
+            success: (data) => {
+                if (data && Array.isArray(data.data)) {
+                    this.mergeWithServer(data.data);
+                }
+            },
+            error: () => { }
+        });
+    },
+    // 保存到服务端 注登录后才能永久保存
+    pushToServer: function (url, keyword) {
+        if (!this.isValidKeyword(keyword)) return;
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: { keyword: keyword.trim() },
+            dataType: 'json',
+            timeout: 6000,
+            error: () => { }
+        });
+    },
+
+    removeFromServer: function (url, keyword) {
+        var data = keyword != null ? { keyword: keyword } : {};
+        $.ajax({ url, type: 'POST', data, dataType: 'json', timeout: 6000, error: () => { } });
+    },
+
+    // 便捷 API（对外暴露）
+    save: function (keyword, serverUrl) {
+        if (this.saveToLocal(keyword) && serverUrl) {
+            this.pushToServer(serverUrl, keyword);
+        }
+    },
+    getKeywords: function () {
+        return this.getLocalHistory().data;
+    },
+    clear: function (serverUrl) {
+        this.removeFromLocal();
+        if (serverUrl) this.removeFromServer(serverUrl);
+    }
+};
 
 /////////////////////////////// 本地搜索历史 ///////////////////////////////
 function isValidSearchKeyword(keyword, maxLength = 100) {
@@ -595,7 +1263,9 @@ function mergeLocalSearchHistory(serverHistory) {
 
 
 ////////////////////////后台分销url操作
+
 /**
+ * 逐步废弃，使用UrlUtils.IsValidUrl替代
 * Checks if the provided URL is valid
 *
 * @param string url
@@ -611,6 +1281,7 @@ function is_valid_url(url) {
 
 }
 /**
+ * 逐步废弃，使用UrlUtils.IsSameDomain替代
  * Checks if the two provided URLs are from the same domain
  *
  * @param string base_url
@@ -628,6 +1299,8 @@ function is_same_domain(base_url, custom_url) {
 
 }
 /**
+ * 逐步废弃 使用UrlUtils替代
+ * @deprecated 20260109
  * Adds the the friendly affiliate parameters to the url
  *
  */
@@ -680,16 +1353,16 @@ function process_friendly_url(param, value, url) {
 
 }
 /**
+ * 逐步废弃 使用UrlUtils替代
+ * @deprecated 20260109
  * Adds an argument name, value pair to a given URL string
- *
+ * 
  */
 function add_query_arg(param, value, url) {
-
     var re = new RegExp("[\\?&]" + param + "=([^&#]*)"),
         match = re.exec(url),
         delimiter, newString;
     var hash = url.split('#')[1];
-
     url = url.split('#')[0];
 
     if (match === null) {

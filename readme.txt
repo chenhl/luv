@@ -32,6 +32,10 @@ terser 负责压缩js
     terser src/js/u-profile.js -o dist/js/u-profile.min.js
     terser src/js/u-wishlist.js -o dist/js/u-wishlist.min.js
     terser src/js/libs/litepicker/litepicker.js -o dist/js/libs/litepicker/litepicker.min.js
+    terser src/js/aff-apply.js -o dist/js/aff-apply.min.js
+    terser src/js/aff-links.js -o dist/js/aff-links.min.js
+    terser src/js/aff-settings.js -o dist/js/aff-settings.min.js
+    terser src/js/date-picker.js -o dist/js/date-picker.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it

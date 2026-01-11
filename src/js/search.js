@@ -14,19 +14,19 @@ $(document).ready(function () {
         // elements_selector: ".lazy"
     });
 
-    // 直接访问搜索页面
-    // search history
-    const params = UrlUtils.getCurrentParams();
-    const q = params.get('q');
-    const p = params.get('p');
-    if (q) {
-        if (!p || p == 1) {
-            //save local storage
-            saveSearchToLocalStorage(q);
-            //服务器端保存
-            saveOneSearchHistory(q, saveSearchHistoryUrl);
-        }
-    }
+    // // 直接访问搜索页面
+    // // search history
+    // const params = UrlUtils.getCurrentParams();
+    // const q = params.get('q');
+    // const p = params.get('p');
+    // if (q) {
+    //     if (!p || p == 1) {
+    //         //save local storage
+    //         saveSearchToLocalStorage(q);
+    //         //服务器端保存
+    //         saveOneSearchHistory(q, saveSearchHistoryUrl);
+    //     }
+    // }
 
     ///////////filter start
     // Reset
