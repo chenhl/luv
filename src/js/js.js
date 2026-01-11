@@ -789,6 +789,7 @@ function fallbackCopyText(text) {
 }
 
 $(function () {
+    //1. 联盟跟踪上报（安全调用）
     if (typeof affiliate_config !== 'undefined') {
         try {
             AffiliateTracker.init();
@@ -796,7 +797,15 @@ $(function () {
             // console.error('Failed to init UserTimezone:', e);
         }
     }
-    // 用户时区上报（安全调用）
+    //2. 页面跟踪上报（安全调用）
+    if (typeof trace_config !== 'undefined') {
+        try {
+            PageTracker.init();
+        } catch (e) {
+            // console.error('Failed to init UserTimezone:', e);
+        }
+    }
+    //3. 用户时区上报（安全调用）
     if (typeof userTimezoneUrl !== 'undefined') {
         try {
             UserTimezone.init();
@@ -804,7 +813,7 @@ $(function () {
             // console.error('Failed to init UserTimezone:', e);
         }
     }
-    // 会员检查（安全调用）
+    //4. 会员检查（安全调用）
     if (typeof memberCheckUrl !== 'undefined') {
         const ajax_params = {};
         if (typeof product_id !== 'undefined') {
@@ -844,8 +853,7 @@ $(function () {
             error: function (XMLHttpRequest, textStatus, errorThrown) { }
         });
     }
-
-    //ajax 邮件订阅
+    //5. ajax 邮件订阅
     $("#subscribe_btn").click(function () {
         var $btn = $(this);
         //disable button
