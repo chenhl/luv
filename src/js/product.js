@@ -66,121 +66,35 @@ function scrollToElement(targetElement, header_height) {
     });
 }
 
-function renderSizeChart() {
-    const sizes = Object.keys($size_charts);
-
-    if (sizes.length === 1) {
-        renderSizeChartSingle();
-    } else {
-        renderSizeChartMulti();
-    }
-
-    //tab
-    const tab = ['<ul class="nav nav-tabs mb-4" id="sizeTabs" role="tablist">'];
-    for (i = 0; i < sizes.length; i++) {
-        const key = sizes[i]; // jacket, pants, etc.
-        tab.push('<li class="nav-item" role="presentation">');
-        tab.push(`<button class="nav-link ${i === 0 ? 'active' : ''}" id="${key}-tab" data-bs-toggle="tab" data-bs-target="#${key}" type="button">${key}</button>`);
-        tab.push('</li>');
-        // const size = $size_charts[key];
-        // console.log(key);
-        // console.log(size);
-    }
-    tab.push('</ul>');
-
-    //content
-    const content = ['<div class="tab-content" id="sizeTabsContent">'];
-    for (i = 0; i < sizes.length; i++) {
-        const key = sizes[i]; // jacket, pants, etc.
-        const size = $size_charts[key];
-
-        content.push(`<div class="table-responsive tab-pane fade ${i === 0 ? 'show active' : ''}" id="${key}" role="tabpanel" aria-labelledby="${key}-tab">`);
-        content.push(renderTable(size));
-        content.push('</div>');
-        // console.log(key);
-        // console.log(size);
-    }
-    content.push('</div>');
-
-    //append tab and content
-    $('#panelsStayOpen-sizeChart .accordion-body').append(tab.join(''));
-    $('#panelsStayOpen-sizeChart .accordion-body').append(content.join(''));
-}
-
-function renderSizeChartMulti() {
-
-}
-
-function renderSizeChartSingle() {
-
-}
-// 通用渲染函数
-function renderTable(data) {
-    const table = ['<table class="table table-sm table-bordered table-striped size-table">'];
-    const thead = ['<thead>'];
-    const tbody = ['<tbody>'];
-
-    // 获取所有属性名（去重）
-    const attrNames = [];
-    for (const size in data) {
-        data[size].forEach(item => {
-            if (!attrNames.includes(item.attr_name)) {
-                attrNames.push(item.attr_name);
-            }
-        });
-        break; // 只需第一个尺码即可获取完整属性
-    }
-
-    // 渲染表头
-    thead.push('<tr>');
-    thead.push('<th>Size</th>');
-    attrNames.forEach(name => {
-        thead.push(`<th>${name}</th>`);
-    });
-    thead.push('</tr>');
-
-    // 渲染每一行
-    tbody.push('');
-    for (const size in data) {
-        const row = ['<tr><td>' + size.toUpperCase() + '</td>'];
-        const measurements = {};
-        data[size].forEach(m => {
-            measurements[m.attr_name] = `${m.inch}`;
-        });
-        attrNames.forEach(name => {
-            row.push(`<td>${measurements[name] || '—'}</td>`);
-        });
-        tbody.push(row.join(''));
-    }
-    tbody.push('</tbody>');
-
-    // 合并表格
-    table.push(thead.join(''));
-    table.push(tbody.join(''));
-    table.push('</table>');
-
-    return table.join('');
-}
-
+/**
+ * 
+ * @description 渲染尺码表
+ */
 function renderSizeChartEle() {
     const sizes = Object.keys($size_charts);
     //content
     for (i = 0; i < sizes.length; i++) {
-        const key = sizes[i]; // jacket, pants, etc.
-        const size = $size_charts[key]; //data
-
-        renderTableEle(size, key + 'Table' + default_size_unit, default_size_unit);
-        renderTableEle(size, key + 'Table' + second_size_unit, second_size_unit);
-
-        // console.log(key);
+        const attr_code = sizes[i]; // jacketsize, pantssize, size, etc.
+        const data = $size_charts[attr_code]; //data
+        //分别渲染 inch and cm的尺码
+        renderTableEle(data, attr_code, attr_code + 'Table' + default_size_unit, default_size_unit);
+        renderTableEle(data, attr_code, attr_code + 'Table' + second_size_unit, second_size_unit);
     }
 }
-function renderTableEle(data, tableId, system) {
+/**
+ * 
+ * @param {object} data 
+ * @param {string} attr_code // jacket, pants, etc.
+ * @param {string} tableId // jacketTableInch, jacketTableCm, etc.
+ * @param {string} system // inch or cm
+ */
+function renderTableEle(data, attr_code, tableId, system) {
     const $table = $(`#${tableId}`);
     const $thead = $table.find('thead tr');
     const $tbody = $table.find('tbody');
 
-    const key = system.toLowerCase();
+    //长度单位
+    const key = system.toLowerCase(); // inch or cm
 
     // 获取所有属性名（去重）
     const attrNames = [];
@@ -194,18 +108,37 @@ function renderTableEle(data, tableId, system) {
     }
 
     // 渲染表头
-    $thead.empty().append('<th>Size</th>');
+    $thead.empty().append(`<th>${translations.size}</th>`);
     attrNames.forEach(name => {
         $thead.append(`<th>${name}</th>`);
     });
 
     // 渲染每一行
     $tbody.empty();
-    for (const size in data) {
-        const row = ['<tr><td>' + size.toUpperCase() + '</td>'];
+    for (const value_code in data) {
+        //TODO: 基于尺码系统获取尺码名称
+        let value_name;
+        if (typeof $sku_map[attr_code] !== 'undefined' && typeof $sku_map[attr_code]['values'] !== 'undefined' && typeof $sku_map[attr_code]['values'][value_code] !== 'undefined') {
+            value_name = $sku_map[attr_code]['values'][value_code]['value_name'];// 获取尺码名称
+        } else {
+            // value_name = value_code.toUpperCase(); 
+            continue; // 如果找不到尺码名称，则跳过该尺码，也就是只保留商品sku的尺码表
+        }
+
+        const row = ['<tr><td>' + value_code.toUpperCase() + '</td>'];
         const measurements = {};
-        data[size].forEach(m => {
-            measurements[m.attr_name] = `${m[key]}`;
+        data[value_code].forEach(m => {
+            let val;
+            if (key === 'inch') {//英制计量
+                if (m.ft !== '') {//身高使用ft字段的值 5'6"
+                    val = m.ft;
+                } else {// 其他使用inch字段的值
+                    val = m.inch;
+                }
+            } else {//公制计量 key===cm
+                val = m[key];
+            }
+            measurements[m.attr_name] = `${val}`;
         });
         attrNames.forEach(name => {
             row.push(`<td>${measurements[name] || '—'}</td>`);
@@ -1111,7 +1044,7 @@ $(function () {
         }
     }
     //////////////////// init ////////////////////
-    
+
     //监听数据变化，自动刷新 UI
     $(document).on('product:updated', (e, info) => {
         renderProductUI(info);
