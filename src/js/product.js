@@ -125,7 +125,7 @@ function renderTableEle(data, attr_code, tableId, system) {
             continue; // 如果找不到尺码名称，则跳过该尺码，也就是只保留商品sku的尺码表
         }
 
-        const row = ['<tr><td>' + value_code.toUpperCase() + '</td>'];
+        const row = ['<tr><td>' + value_name + '</td>'];
         const measurements = {};
         data[value_code].forEach(m => {
             let val;
