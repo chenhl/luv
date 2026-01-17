@@ -116,16 +116,20 @@ window.TrackingPolicy = {
         console.error('[Tracking Error]', ...args);
     }
 };
-// =============== 2. Cookie 工具 ===============
-//set cookie
+// =============== 2. Cookie 工具 ==============
+// 基于UTC时间戳的cookie
+//set cookie with timestamp
+function setCookieTimestamp(name, value, expiresAt) {
+    const expires = new Date(expiresAt * 1000);
+    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+}
+//set cookie with days
 function setCookie(name, value, days) {
     days = days || 30;
     var expires = '';
-    // if (days) {
     var date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     expires = '; expires=' + date.toUTCString();
-    // }
     document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
     // const Days = 30;
     // const exp = new Date();
@@ -139,6 +143,11 @@ function getCookie(name) {
     return v ? decodeURIComponent(v[2]) : null;
 }
 // =============== 3. URL 工具集 ===============
+// const UrlUtils 与 window.UrlUtils 写法的区别
+// const UrlUtils 是一个对象字面量，而 window.UrlUtils 是一个全局对象
+// const UrlUtils 是一个无状态的工具函数集合，而 window.UrlUtils 是一个有状态的对象
+// const UrlUtils 是一个纯函数集合，而 window.UrlUtils 是一个有副作用的对象
+
 // 添加命名空间对象 对象字面量 
 // 无状态的工具函数集合
 // 所有方法都是纯函数：输入 → 输出，没有副作用
@@ -818,7 +827,39 @@ $(function () {
             // console.error('Failed to init UserTimezone:', e);
         }
     }
-    //4. 会员检查（安全调用）
+    //4.广告位
+    //渲染bannerUI
+    if (typeof promoCouponConfig !== 'undefined' && promoCouponConfig.checkPromo && !PromoBannerManager.isClosedToday(promoCouponConfig.promoZoneId)) {
+        $('[data-promo-zone]').each(function () {
+            const $el = $(this);
+            const zone = $el.data('promo-zone');
+            let requestData = {}; // 请求参数
+            requestData['zone'] = zone;
+            //分类
+            const attr_group = $el.data('attr-group');
+            if (attr_group) {
+                requestData['group'] = attr_group;
+            }
+            //商品
+            const spu = $el.data('spu');
+            if (spu) {
+                requestData['spu'] = spu;
+            }
+            $.get(promoCouponConfig.promoCouponUrl, requestData).done(function (res) {
+                if (res.success && res.html) {
+                    // // GDPR 合规：即使有数据，也要检查是否已被用户关闭
+                    // if (isClosedToday(promoZoneId)) {
+                    //     return; // 不渲染
+                    // }
+                    PromoBannerManager.renderPromoBanner($el, res.html);
+                }
+                // 否则不渲染（静默）
+            }).fail(function () {
+                // 静默失败，不影响主流程
+            });
+        });
+    }
+    //5. 会员检查（安全调用）
     if (typeof memberCheckUrl !== 'undefined') {
         const ajax_params = {};
         if (typeof product_id !== 'undefined') {
@@ -832,25 +873,20 @@ $(function () {
             data: ajax_params,
             url: memberCheckUrl,
             success: function (data, textStatus) {
-
                 if (data.loginStatus) {
                     $('#header-welcome-js').removeClass('d-none'); //show welcome
                     $('#header-email-js').text(data.customer_email);
                     $('#header-login-js').addClass('d-none'); //hide login
                 }
-
                 if (data.favorite) {
                     $('#product-favorite-js').addClass('text-danger');
                 }
-
                 if (data.favorite_product_count) {
                     // $(".header-right-user-wishlist-num-js").html(data.favorite_product_count);
                 }
-
                 if (data.affiliate) {
                     $("#affiliate-link-js").show(); //show affiliate link
                 }
-
                 if (data.cart_qty) {
                     $(".cart-item-count-js").text(data.cart_qty);
                 }
@@ -858,7 +894,7 @@ $(function () {
             error: function (XMLHttpRequest, textStatus, errorThrown) { }
         });
     }
-    //5. ajax 邮件订阅
+    //6. header ajax 邮件订阅
     $("#subscribe_btn").click(function () {
         var $btn = $(this);
         //disable button
@@ -908,9 +944,9 @@ window.SearchHistory = {
     },
     //简单校验，判断是否为空字符串或超过最大长度
     isValidKeyword: function (keyword) {
-        if (typeof keyword !== ' string') return false;
+        if (typeof keyword !== 'string') return false;
         const t = keyword.trim();
-        return t.length > 0 && t.length <= this.config.MAX_KEYWORD_LENGTH;
+        return t.length > 0 && t.length <= this.config.KEYWORD_MAX_LENGTH;
     },
     //废弃 正则校验 不需要这么严格的校验
     isValidKeywordWithRegex: function (keyword, maxLength) {
@@ -936,7 +972,7 @@ window.SearchHistory = {
             if (!history.data || !Array.isArray(history.data)) history.data = [];
             return history;
         } catch (e) {
-            console.warn('Search history parse error, resetting.', e);
+            // console.warn('Search history parse error, resetting.', e);
             return { update_time: null, last_sync_time: null, data: [] };
         }
     },
@@ -1057,6 +1093,314 @@ window.SearchHistory = {
         if (serverUrl) this.removeFromServer(serverUrl);
     }
 };
+
+/**
+    * PromoBannerManager.js - 促销优惠券 Banner 管理器
+    * 功能：按区域请求并渲染促销 Banner，支持“今日不再显示”
+    * 
+    * 一：IIFE: “创建私有作用域 + 控制暴露接口”。
+    * 二：确保 依赖的全局函数 在 PromoBannerManager 初始化前已定义
+    * 如果未来升级到 ES6+，可以用 import/export 替代 IIFE，但核心思想（封装 + 依赖管理）永远不变
+    */
+window.PromoBannerManager = (function () {
+    'use strict';
+    // === 配置（可外部覆盖）===
+    const CONFIG = {
+        EXPIRE_KEY_SUFFIX: '_expires',
+        CLOSED_KEY_SUFFIX: '_closed'
+    };
+    // 工具函数：安全设置存储（优先 localStorage，否则 sessionStorage）
+    function setSafeStorage(key, value, expiresAtTimestamp = null) {
+        try {
+            if (typeof (Storage) !== "undefined") {
+                localStorage.setItem(key, value);
+                if (expiresAtTimestamp) {
+                    localStorage.setItem(key + CONFIG.EXPIRE_KEY_SUFFIX, expiresAtTimestamp);
+                }
+            } else if (typeof (Storage) !== "undefined") {
+                sessionStorage.setItem(key, value);
+            }
+        } catch (e) {
+            // 忽略（隐私模式可能禁用 storage）
+        }
+    }
+    // 工具函数：读取存储
+    function getSafeStorage(key) {
+        try {
+            // 优先尝试 localStorage（检查是否过期）
+            const storedValue = localStorage.getItem(key);
+            if (storedValue !== null) {
+                const expireKey = key + CONFIG.EXPIRE_KEY_SUFFIX;
+                const expireTime = localStorage.getItem(expireKey);
+                if (expireTime) {
+                    const now = Math.floor(Date.now() / 1000); // 当前时间戳（秒）
+                    if (now >= parseInt(expireTime, 10)) {
+                        // 已过期，清理并返回 null
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(expireKey);
+                        return null;
+                    }
+                }
+                return storedValue;
+            }
+            // 回退到 sessionStorage
+            return sessionStorage.getItem(key);
+        } catch (e) {
+            return null;
+        }
+    }
+    // 生成今日结束时间的时间戳（UTC）
+    function getEndOfDayTimestamp() {
+        const now = new Date();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        return Math.floor(endOfDay.getTime() / 1000);
+    }
+    // === 判断今日是否已关闭 ===
+    function isClosedToday(promoId) {
+        const key = promoId + CONFIG.CLOSED_KEY_SUFFIX;
+        // 先查 Cookie（如果合规）
+        if (TrackingPolicy.isAllowed) {
+            return getCookie(key) === 'true';
+        }
+        // 再查 Storage
+        return getSafeStorage(key) === 'true';
+    }
+
+    function setCookieTimestamp(name, value, expiresAt) {
+        const expires = new Date(expiresAt * 1000);
+        document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+    }
+    // 设置“今日不再显示”的标记
+    function setCloseForToday(promoId) {
+        const key = promoId + CONFIG.CLOSED_KEY_SUFFIX;
+        const expiresAt = getEndOfDayTimestamp();
+        console.log('expiresAt', expiresAt);
+        // 如果用户已同意 Cookie，使用 Cookie（可跨会话但限当天）
+        if (TrackingPolicy.isAllowed) {
+            setCookieTimestamp(key, 'true', expiresAt);
+        } else {
+            // 否则用 storage
+            setSafeStorage(key, 'true', expiresAt);
+        }
+    }
+
+    function renderPromoBanner($container, promoData) {
+        $container.html(promoData);
+        // 绑定关闭事件
+        $container.find('.btn-close').on('click', function () {
+            setCloseForToday(promoCouponConfig.promoZoneId);
+            $container.remove();
+        });
+
+        // 绑定领取事件
+        $container.find('.btn-claim-js').on('click', function () {
+
+            var $btn = $(this); //按钮
+            if ($btn.prop('disabled')) {
+                return false;
+            }
+            //disable button
+            $btn.prop('disabled', true).text(promoCouponConfig.translations.claimIng);
+
+            var coupon_code = $btn.data('coupon-code').trim();
+            // return false; //test
+            //参数
+            var $data = {
+                coupon_code: coupon_code,
+            };
+            if (typeof (promoCouponConfig.csrfName) != 'undefined') {
+                $data[promoCouponConfig.csrfName] = promoCouponConfig.csrfVal;
+            }
+            $.ajax({
+                timeout: 6000,
+                dataType: 'json',
+                type: 'post',
+                data: $data,
+                url: promoCouponConfig.couponClaimUrl,
+                success: function (data, textStatus) {
+                    showToast(data.message, '#promo-toast-js');
+                    console.log('ajax success', data);
+                    if (data.status == 'success') {
+                        // 领取成功后，更新按钮状态
+                        // $btn.prop('disabled', true).text(promoCouponConfig.translations.claimed); //领取成功后，按钮显示已领取
+                        // 更新状态显示
+                        console.log('claim success');
+                        $btn.closest('.claim-status-js').html(`
+                                <span class="fw-bold text-success">${coupon_code}</span>
+                                <span class="badge bg-success">${promoCouponConfig.translations.claimed}</span>
+                            `);
+                    }
+                    //enable button
+                    $btn.prop('disabled', false).text(promoCouponConfig.translations.claim); //恢复按钮
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(promoCouponConfig.translations.systemError);
+                    //enable button
+                    $btn.prop('disabled', false).text(promoCouponConfig.translations.claim);
+                }
+            });
+
+        });
+    }
+    // === 对外暴露 API ===
+    return {
+        renderPromoBanner: renderPromoBanner,
+        isClosedToday: isClosedToday,
+        setCloseForToday: setCloseForToday,
+        setSafeStorage: setSafeStorage,
+        getSafeStorage: getSafeStorage,
+        getEndOfDayTimestamp: getEndOfDayTimestamp
+    };
+
+})();
+/**
+ * I18nHelper.js - 轻量级本地化工具（兼容 Yii2 + jQuery）
+ * 功能：货币、日期、数字的本地化格式化
+ * 
+ * 一：IIFE: “创建私有作用域 + 控制暴露接口”。
+ * 二：确保 依赖的全局函数 在 I18nHelper 初始化前已定义
+ * 如果未来升级到 ES6+，可以用 import/export 替代 IIFE，但核心思想（封装 + 依赖管理）永远不变
+ * 
+ */
+window.I18nHelper = (function () {
+    'use strict';
+    // === 1. 获取全局配置（优先级从高到低）===
+    function getLocale() {
+        // 1. 从 window.APP_CONFIG（Yii2 布局注入）
+        if (window.APP_CONFIG && window.APP_CONFIG.locale) {
+            return window.APP_CONFIG.locale;
+        }
+        // 2. 从 <html lang="en-GB">
+        const htmlLang = document.documentElement.lang;
+        if (htmlLang) {
+            return htmlLang;
+        }
+        // 3. 默认
+        return 'en-US';
+    }
+
+    function getCurrency() {
+        if (window.APP_CONFIG && window.APP_CONFIG.currency) {
+            return window.APP_CONFIG.currency;
+        }
+        // 可根据 locale 推断默认币种（可选）
+        const locale = getLocale();
+        if (locale.startsWith('de')) return 'EUR';
+        if (locale.startsWith('fr')) return 'EUR';
+        if (locale.startsWith('en-GB')) return 'GBP';
+        if (locale.startsWith('en')) return 'USD';
+        return 'USD';
+    }
+
+    // === 2. 检查浏览器是否支持 Intl（现代浏览器都支持）===
+    const hasIntl = typeof Intl !== 'undefined' && Intl.NumberFormat && Intl.DateTimeFormat;
+
+    // === 3. 货币格式化 ===
+    function formatCurrency(amount, currency = null, locale = null) {
+        currency = currency || getCurrency();
+        locale = locale || getLocale();
+
+        if (hasIntl) {
+            try {
+                return new Intl.NumberFormat(locale, {
+                    style: 'currency',
+                    currency: currency,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(amount);
+            } catch (e) {
+                // 货币不被 locale 支持时降级
+                console.warn('Currency format fallback:', e);
+            }
+        }
+
+        // === 降级方案：简单格式化（仅支持 USD/GBP/EUR 符号）===
+        const sign = currency === 'GBP' ? '£' :
+            currency === 'EUR' ? '€' :
+                currency === 'USD' ? '$' : currency + ' ';
+        return sign + parseFloat(amount).toFixed(2);
+    }
+
+    // === 4. 日期格式化 ===
+    function formatDate(date, locale = null, options = {}) {
+        locale = locale || getLocale();
+        const defaultOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+        options = Object.assign(defaultOptions, options);
+
+        if (hasIntl) {
+            try {
+                return new Intl.DateTimeFormat(locale, options).format(new Date(date));
+            } catch (e) {
+                console.warn('Date format fallback:', e);
+            }
+        }
+
+        // 降级：YYYY-MM-DD
+        const d = new Date(date);
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+
+    // === 5. 日期+时间格式化 ===
+    function formatDateTime(date, locale = null, options = {}) {
+        locale = locale || getLocale();
+        const defaultOptions = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        options = Object.assign(defaultOptions, options);
+
+        if (hasIntl) {
+            try {
+                return new Intl.DateTimeFormat(locale, options).format(new Date(date));
+            } catch (e) {
+                console.warn('DateTime format fallback:', e);
+            }
+        }
+
+        // 降级
+        const d = new Date(date);
+        return formatDate(d) + ' ' +
+            String(d.getHours()).padStart(2, '0') + ':' +
+            String(d.getMinutes()).padStart(2, '0');
+    }
+
+    // === 6. 数字格式化（千分位）===
+    function formatNumber(number, locale = null, fractionDigits = 0) {
+        locale = locale || getLocale();
+
+        if (hasIntl) {
+            try {
+                return new Intl.NumberFormat(locale, {
+                    minimumFractionDigits: fractionDigits,
+                    maximumFractionDigits: fractionDigits
+                }).format(number);
+            } catch (e) {
+                console.warn('Number format fallback:', e);
+            }
+        }
+
+        // 降级：仅处理英文千分位
+        return parseFloat(number).toLocaleString('en-US', {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits
+        });
+    }
+
+    // === 导出公共 API ===
+    return {
+        formatCurrency: formatCurrency,
+        formatDate: formatDate,
+        formatDateTime: formatDateTime,
+        formatNumber: formatNumber,
+        getLocale: getLocale,
+        getCurrency: getCurrency
+    };
+})();
 
 /////////////////////////////// 本地搜索历史 ///////////////////////////////
 function isValidSearchKeyword(keyword, maxLength = 100) {

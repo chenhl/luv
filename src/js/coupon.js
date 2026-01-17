@@ -9,13 +9,6 @@ $(document).ready(function () {
         $btn.prop('disabled', true).text(translations.redeemIng);
 
         var coupon_code = $btn.data('code').trim();
-        if (coupon_code == '') {
-            //enable button
-            $btn.prop('disabled', false).text(translations.redeem);
-            //show toast message
-            showToast(translations.couponCodeRequired, '#toast-js');
-            return false;
-        }
         // return false; //test
         //参数
         var $data = {
@@ -33,13 +26,17 @@ $(document).ready(function () {
                 showToast(data.message, '#toast-js');
                 if (data.status == 'success') {
                     setTimeout(function () {
+                        //刷新当前页面
                         window.location.href = couponUrl;
                     }, 1500);
-                } else if (data.status == 'login') {
-                    setTimeout(function () {
-                        window.location.href = data.login_url;
-                    }, 1500);
+                } else if (data.status == 'fail') {//上面运行了showToast，这里就不需要再运行了
+                    
                 }
+                //  else if (data.status == 'login') {//服务端已屏蔽，游客可以领取，不会运行到这儿，
+                //     setTimeout(function () {
+                //         window.location.href = data.login_url;
+                //     }, 1500);
+                // }
                 //enable button
                 $btn.prop('disabled', false).text(translations.redeem); //恢复按钮
             },
@@ -103,6 +100,4 @@ $(document).ready(function () {
             }
         });
     });
-
-
 });
