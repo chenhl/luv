@@ -41,15 +41,20 @@ function updateQty(item_id, up_type, qty = null) {
 function updateCheckoutButton() {
     const $checkedItems = $('.item-checkbox-js:checked');
     const checkedCount = $checkedItems.length;
-
+    // 计算价格
     let total = 0;
     $checkedItems.each(function () {
         const price = parseFloat($(this).data('price')) || 0;
         const qty = parseInt($('#qty-js-' + $(this).val()).val()) || 0;
         total += price * qty;
     });
+    const discount = $('#coupon-cost-js').data('cost') || 0;
+    total -= discount; // 减去优惠
+    //币种
+    const currency = $('#total-price-js').data('currency');
 
-    $('#total-price-js').text(total.toFixed(2));
+    // 显示价格 i18n
+    $('#total-price-js').text(I18nHelper.formatCurrency(total, currency));
     $('#checkout-count-js').text(checkedCount);
     $('#btn-checkout-js').prop('disabled', checkedCount === 0);
 

@@ -479,7 +479,6 @@ function updateProductInfo(updates) {
             goToSlide(index);
         }
     }
-    // console.log('updateProductInfo', keys);
     Object.assign(product_info, updates);
     // 触发 UI 更新
     $(document).trigger('product:updated', [product_info]);
@@ -488,7 +487,9 @@ function updateProductInfo(updates) {
 function renderProductUI(info) {
     const price = calculateProductPrice(info);
     // console.log('renderProductUI', info);
-    $('#total-price').text(`${ecommerce_product.symbol}${price}`);
+    // $('#total-price').text(`${ecommerce_product.symbol}${price}`);
+    // I18nHelper
+    $('#total-price').text(`${I18nHelper.formatCurrency(price, ecommerce_product.currency)}`);
 }
 
 function showAttrErrorMessage(attr) {

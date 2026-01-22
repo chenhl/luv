@@ -1,9 +1,12 @@
 function updateCartTotal() {
-    var productTotal = parseFloat($('#product-total-js').text());
-    var shippingCost = parseFloat($('#shipping-cost-js').text());
-    var couponCost = parseFloat($('#coupon-cost-js').text());
+    var productTotal = parseFloat($('#product-total-js').data('product-total'));
+    var shippingCost = parseFloat($('#shipping-cost-js').data('shipping-cost'));
+    var couponCost = parseFloat($('#coupon-cost-js').data('coupon-cost'));
     var grandTotal = productTotal + shippingCost - couponCost;
-    $('#grand-total-js').text(grandTotal.toFixed(2));
+    // //币种
+    // const currency = $('#grand-total-js').data('currency');
+
+    $('#grand-total-js').text(I18nHelper.formatCurrency(grandTotal, currencyInfo.code));
 }
 // 收集收货地址表单数据
 function collectAddressData() {
@@ -108,7 +111,7 @@ function openAddressForm(addressId = null) {
 
 
 $(document).ready(function () {
-    
+
     //form提交 生成订单
     $('#checkout-order-form').on('submit', function (e) {
         const $form = $(this);
@@ -140,9 +143,10 @@ $(document).ready(function () {
         //更新当前选中的shipping
         $('#current-shipping-name-js').text(shippingName);
         $('#current-shipping-method-js').val(selectedId);
-        $('#current-shipping-fee-js').text(shippingFee);
+        $('#current-shipping-fee-js').text(I18nHelper.formatCurrency(shippingFee, currencyInfo.code));
         //更新小计shipping cost
-        $('#shipping-cost-js').text(shippingFee);
+
+        $('#shipping-cost-js').data('shipping-cost', shippingFee).text(I18nHelper.formatCurrency(shippingFee, currencyInfo.code));
 
         //同步到服务端 静默处理 不提示错误信息
         $.post(updateCartShippingUrl, {
@@ -406,14 +410,14 @@ $(document).ready(function () {
     $(document).on('change', '.coupon-item-js input[name="coupon_items"]', function () {
         var coupon_code = $(this).val();
         var coupon_cost = $(this).data('coupon-cost');
-        console.log(coupon_code);
+        // console.log(coupon_code);
         //选中 radio
         // $(this).find('input[type="radio"]').prop('checked', true);
         // 更新当前coupon信息
         $('#current-coupon-cost-input-js').val(coupon_code);
-        $('#current-coupon-cost-js').text(coupon_cost);
+        $('#current-coupon-cost-js').text('-' + I18nHelper.formatCurrency(coupon_cost, currencyInfo.code));
         // 更新小计coupon cost
-        $('#coupon-cost-js').text(coupon_cost);
+        $('#coupon-cost-js').data('coupon-cost', coupon_cost).text('-' + I18nHelper.formatCurrency(coupon_cost, currencyInfo.code));
 
         //同步到服务端 静默处理 不提示错误信息
         $.post(updateCartCouponUrl, {
@@ -491,9 +495,9 @@ $(document).ready(function () {
                     // $('.coupon-available-count-js').text(coupon_available_count); //更新页面显示数量
                     $('.coupon-available-count-js').text(data.listCount); //更新页面显示数量
                     $('#current-coupon-cost-input-js').val(data.coupon_code);
-                    $('#current-coupon-cost-js').text(data.cost);
+                    $('#current-coupon-cost-js').text('-' + I18nHelper.formatCurrency(data.cost, currencyInfo.code));
                     // 更新小计coupon cost
-                    $('#coupon-cost-js').text(data.cost);
+                    $('#coupon-cost-js').data('coupon-cost', data.cost).text('-' + I18nHelper.formatCurrency(data.cost, currencyInfo.code));
 
                     //插入html
                     var $ele = $('#tab-available').find('.coupon-list-js');

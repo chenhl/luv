@@ -111,6 +111,9 @@ window.TrackingPolicy = {
             console.log('[Tracking]', ...args);
         }
     },
+    warn: function (...args) {
+        console.warn('[Tracking Warn]', ...args);
+    },
 
     error: function (...args) {
         console.error('[Tracking Error]', ...args);
@@ -1267,10 +1270,10 @@ window.I18nHelper = (function () {
     // === 1. 获取全局配置（优先级从高到低）===
     function getLocale() {
         // 1. 从 window.APP_CONFIG（Yii2 布局注入）
-        if (window.APP_CONFIG && window.APP_CONFIG.locale) {
+        if (typeof window.APP_CONFIG !== 'undefined' && typeof window.APP_CONFIG.locale !== 'undefined') {
             return window.APP_CONFIG.locale;
         }
-        // 2. 从 <html lang="en-GB">
+        // 2. 从 <html lang="en"> 本项目是多语言但不是本地站，比如de，而不是de-DE地区，但de的currency默认是de-DE,
         const htmlLang = document.documentElement.lang;
         if (htmlLang) {
             return htmlLang;
