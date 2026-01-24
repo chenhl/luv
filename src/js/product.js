@@ -1035,15 +1035,18 @@ $(function () {
     //     }
     // }
     // lazyload 初始化 这个必须有，不然图片不显示
-    if (typeof LazyLoad !== 'undefined') {
-        try {
-            const lazyLoadInstance = new LazyLoad({
-                // elements_selector: ".lazy"
-            });
-        } catch (e) {
-            // console.error('LazyLoad init failed:', e);
-        }
-    }
+    const lazyLoadInstance = new LazyLoad({
+        // elements_selector: ".lazy"
+    });
+    // if (typeof LazyLoad !== 'undefined') {
+    //     try {
+    //         const lazyLoadInstance = new LazyLoad({
+    //             // elements_selector: ".lazy"
+    //         });
+    //     } catch (e) {
+    //         // console.error('LazyLoad init failed:', e);
+    //     }
+    // }
     //////////////////// init ////////////////////
 
     //监听数据变化，自动刷新 UI
