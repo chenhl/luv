@@ -107,6 +107,32 @@ $accordion-body-padding-x: 0.5rem;
 //   padding: 0.5rem;
 // }
 
+//pc版
+/* 强制下拉菜单居中显示在触发器正下方 */
+.luv-dropdown-menu {
+    /* 取消 Bootstrap 默认的 transform 偏移，改用 left 百分比 */
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    /* transform: translateX(-50%) 是让元素自身向左移动一半宽度，实现精准居中 */
+    /* 保持在触发器下方一点的距离 */
+    /* margin-top: 5px; */
+    top: 100% !important;
+    /* 确保在底部 */
+    /* 关键：允许尖角溢出显示 */
+    /* overflow: visible; */
+}
+.luv-bg-pc-coupon-center-banner { 
+  background-image: url('../images/pc-coupon-center-banner.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.luv-bg-pc-coupon-center-banner-me { 
+  background-image: url('../images/pc-coupon-me-bg.png');
+  background-size: cover;
+  background-position: center;
+}
+
 //手机版 Left menu
 .luv-left-header { 
   background-image: url('../images/bg-left-header.jpg');
@@ -133,6 +159,7 @@ $accordion-body-padding-x: 0.5rem;
   background-size: cover;
   background-position: center;
 }
+
 .luv-bg-coupon-unavailable-flag { 
   background-image: url('../images/coupon-bg-unavailable.png');
   background-size: cover;

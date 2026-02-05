@@ -26,6 +26,16 @@ function updateQty(item_id, up_type, qty = null) {
                         // }
                     });
                 } else {
+                    //pc端独有 更新row价格
+                    //===========
+                    if (!isMobile) {
+                        var price = $('.cart-item-js[data-item-id="' + item_id + '"]').find('.item-checkbox-js').data('price');
+                        var qty = $('#qty-js-' + item_id).val();
+                        var row_total = price * qty;
+                        const currency = currency_info.code; //币种
+                        $('.cart-item-js[data-item-id="' + item_id + '"]').find('.row-product-total-js').text(I18nHelper.formatCurrency(row_total, currency));
+                    }
+                    //===========
                     updateCheckoutButton();
                 }
             } else {
@@ -41,23 +51,29 @@ function updateQty(item_id, up_type, qty = null) {
 function updateCheckoutButton() {
     const $checkedItems = $('.item-checkbox-js:checked');
     const checkedCount = $checkedItems.length;
+
     // 计算价格
-    let total = 0;
+    let product_total = 0; // 商品总价
+    let total = 0; // 总价
     $checkedItems.each(function () {
         const price = parseFloat($(this).data('price')) || 0;
         const qty = parseInt($('#qty-js-' + $(this).val()).val()) || 0;
-        total += price * qty;
+        product_total += price * qty;
     });
-    const discount = $('#coupon-cost-js').data('cost') || 0;
-    total -= discount; // 减去优惠
+    const discount = $('#coupon-cost-js').data('cost') || 0; // 优惠
+    total = product_total - discount; // 总价=商品总价减去优惠后的价格
     //币种
-    const currency = $('#total-price-js').data('currency');
+    const currency = currency_info.code; //币种
 
     // 显示价格 i18n
     $('#total-price-js').text(I18nHelper.formatCurrency(total, currency));
     $('#checkout-count-js').text(checkedCount);
     $('#btn-checkout-js').prop('disabled', checkedCount === 0);
-
+    //pc端独有 显示商品总价
+    //===========
+    if (!isMobile) {
+        $('#product-total-js').text(I18nHelper.formatCurrency(product_total, currency)); // 商品总价
+    }
     // 同步全选按钮状态
     const allChecked = $('.item-checkbox-js').length > 0 && $checkedItems.length === $('.item-checkbox-js').length;
     $('#check-all-js').prop('checked', allChecked);
@@ -65,7 +81,6 @@ function updateCheckoutButton() {
     // // 显示/隐藏结算区域
     // $('#checkout-js').toggleClass('d-none', checkedCount === 0);
 }
-
 function paypalBuynowCreatePayment() {
     if (!paypal_client_id) return;
 

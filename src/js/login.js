@@ -93,14 +93,20 @@ $(document).ready(function () {
     // 三方登录
     $('#facebook-signin-js').on('click', function (e) {
         e.preventDefault();
-        // window.open(facebookLoginUrl, '_blank');
-        //手机版直接跳转
-        window.location.href = facebookLoginUrl;
+        if (isMobile) {
+            openWindow(facebookLoginUrl, '_blank');
+        } else {
+            //手机版直接跳转
+            window.location.href = facebookLoginUrl;
+        }
     });
     $('#google-signin-js').on('click', function (e) {
         e.preventDefault();
-        // window.open(googleLoginUrl, '_blank');
-        window.location.href = googleLoginUrl;
+        if (isMobile) {
+            openWindow(googleLoginUrl, '_blank');
+        } else {
+            window.location.href = googleLoginUrl;
+        }
     });
 
 });

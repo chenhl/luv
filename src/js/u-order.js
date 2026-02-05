@@ -96,6 +96,8 @@ $(document).ready(function () {
             ReceiptOrder(orderSN);
         }
     });
+    
+    // ================手机端专用==================
     // ===== 3. 无限滚动 ===== infiniteScroll
     // search ajax 无限滚动 禁用history
     // product load more ajax 无限滚动 禁用history

@@ -88,7 +88,7 @@ $(document).ready(function () {
             return;
         }
         const textToCopy = $input.val().trim();
-        console.log(textToCopy);
+        // console.log(textToCopy);
         if (!textToCopy) {
             // 可选：提示用户链接为空
             return;
@@ -113,7 +113,8 @@ $(document).ready(function () {
     });
 
 
-    // ===== 3. 无限滚动 ===== infiniteScroll
+    // ================手机端专用==================
+    // ===== 3. 无限滚动 ===== infiniteScroll 
     // search ajax 无限滚动 禁用history
     // product load more ajax 无限滚动 禁用history
     // category append 无限滚动 启用用history

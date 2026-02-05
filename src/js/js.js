@@ -22,6 +22,69 @@ function isLikelyMobile() {
     }
     return false;
 }
+// pc 三方登录打开新窗口
+function openWindow(url, target) {
+    // --- 1. 窗口参数设置 ---
+    var width = 750;
+    var height = 600;
+
+    // 获取屏幕参数（兼容旧版 IE 和现代浏览器）
+    var screenX = typeof window.screenX !== 'undefined' ? window.screenX : window.screenLeft;
+    var screenY = typeof window.screenY !== 'undefined' ? window.screenY : window.screenTop;
+    var outerWidth = typeof window.outerWidth !== 'undefined' ? window.outerWidth : document.body.clientWidth;
+    var outerHeight = typeof window.outerHeight !== 'undefined' ? window.outerHeight : (document.body.clientHeight - 22);
+
+    var left = parseInt(screenX + ((outerWidth - width) / 2), 10);
+    var top = parseInt(screenY + ((outerHeight - height) / 2.5), 10);
+
+    // --- 2. 特性字符串优化 (PC 端专用：隐藏无关 UI) ---
+    // 这样弹出的窗口看起来更像一个“应用窗口”而不是网页
+    var features = [
+        'width=' + width,
+        'height=' + height,
+        'left=' + left,
+        'top=' + top,
+        'menubar=no', // 隐藏菜单栏
+        'toolbar=no', // 隐藏工具栏
+        'location=no', // 隐藏地址栏
+        'personalbar=no', // 隐藏书签工具栏
+        'status=no', // 隐藏状态栏
+        'scrollbars=yes' // 允许滚动（登录框过长时需要）
+    ].join(',');
+
+    target = target || '_blank';
+    // console.log(url);
+
+    // --- 3. 打开窗口与异常处理 ---
+    var newwindow;
+    try {
+        // 修复1: 使用 var 声明
+        // 修复2: 捕获可能的安全异常
+        newwindow = window.open(url, target, features);
+
+        // --- 4. 焦点控制与拦截检测 ---
+        if (newwindow) {
+            // 尝试聚焦，包裹在 try-catch 中以防跨域报错
+            try {
+                if (window.focus) {
+                    newwindow.focus();
+                }
+            } catch (focusError) {
+                console.warn('focusError:', focusError);
+            }
+            return false; // 成功打开，阻止默认跳转
+        } else {
+            // 弹窗被拦截（AdBlock 或 浏览器设置）
+            alert(translations.popupBlocked);
+            return true; // 允许默认行为（如果有的话）
+        }
+    } catch (openError) {
+        console.error('openError:', openError);
+        // 如果直接报错（如 CSP 限制），尝试直接跳转
+        window.location.href = url;
+        return false;
+    }
+}
 /**
  * 判断是否为非人类流量（爬虫 / 自动化工具）
  * 依赖全局 isbot() 函数（由 isbot 库提供）
@@ -884,8 +947,9 @@ $(function () {
                 if (data.favorite) {
                     $('#product-favorite-js').addClass('text-danger');
                 }
+                //pc端
                 if (data.favorite_product_count) {
-                    // $(".header-right-user-wishlist-num-js").html(data.favorite_product_count);
+                    $("#favorite-count-js").text(data.favorite_product_count);
                 }
                 if (data.affiliate) {
                     $("#affiliate-link-js").show(); //show affiliate link
