@@ -188,5 +188,9 @@ $(document).ready(function () {
         });
     });
     //address form modal------------------------ end
+    // 取消按钮点击事件
+    $(document).on('click', '#btn-cancel-address-js', function () {
+        window.location.href = addressCancelUrl; // 跳转到购物车页面
+    });
 
 });

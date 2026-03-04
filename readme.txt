@@ -37,6 +37,7 @@ terser 负责压缩js
     terser src/js/aff-settings.js -o dist/js/aff-settings.min.js
     terser src/js/date-picker.js -o dist/js/date-picker.min.js
     terser src/js/bind-email.js -o dist/js/bind-email.min.js
+    terser src/js/jquery.ez-plus.js -o dist/js/jquery.ez-plus.min.js
 -----------
 // load any GitHub release, commit, or branch
 // note: we recommend using npm for projects that support it
