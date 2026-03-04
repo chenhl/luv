@@ -309,7 +309,8 @@ if (typeof Object.create !== 'function') {
                 left: self.nzOffset.left,
                 height: self.nzHeight,
                 width: self.nzWidth,
-                zIndex: self.options.zIndex
+                zIndex: self.options.zIndex,
+                display: 'none'
             });
             if (self.$elem.attr('id')) {
                 self.zoomContainer.attr('id', self.$elem.attr('id') + '-' + self.options.container);
