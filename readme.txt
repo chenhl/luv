@@ -10,6 +10,7 @@ terser 负责压缩js
     terser --help
     示例：
     terser src/js/js.js -o dist/js/js.min.js
+    terser src/js/sharer.js -o dist/js/sharer.min.js
     terser src/js/product.js -o dist/js/product.min.js
     terser src/js/category.js -o dist/js/category.min.js
     terser src/js/search.js -o dist/js/search.min.js
