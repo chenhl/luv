@@ -32,9 +32,21 @@
     // }
     // 改为事件委托：监听整个 document
     document.addEventListener('click', function (e) {
-      const target = e.target.closest('[data-sharer]');
-      if (target) Sharer.add(e);
-    });
+      // 1. 精准定位分享按钮元素
+      const btn = e.target.closest('[data-sharer]');
+      if (!btn) return;
+
+      // 2. 阻止默认行为（修复原库缺陷：避免 # 跳转/页面刷新）
+      e.preventDefault();
+
+      // 3. 直接创建实例（绕过 Sharer.add 的 currentTarget 陷阱）
+      try {
+        const sharer = new Sharer(btn);
+        sharer.share();
+      } catch (err) {
+        console.error('[Sharer.js] 分享执行失败:', err, btn);
+      }
+    }, true); // useCapture: true 确保在冒泡前捕获（防其他事件干扰）
   };
 
   /**
