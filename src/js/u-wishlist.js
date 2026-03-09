@@ -2,8 +2,8 @@ function init_share($ele) {
     //init sharejs
     var shareUrl = $ele.data('share-url');
     var shareTitle = $ele.data('share-title');
-    console.log(shareUrl);
-    console.log(shareTitle);
+    // console.log(shareUrl);
+    // console.log(shareTitle);
     //share info
     var elems = $('[data-sharer]');
     for (var i = 0; i < elems.length; i++) {
@@ -14,7 +14,10 @@ function init_share($ele) {
     $('#product-link-url-input-js').val(shareUrl);
     //share affiliate link
     var affiliateUrl = $ele.data('affiliate-url');
-    $('#affiliate-link-url-input-js').val(affiliateUrl);
+    if (affiliateUrl) {
+        $('#affiliate-link-container-js').removeClass('d-none');
+        $('#affiliate-link-url-input-js').val(affiliateUrl);
+    }
 }
 
 function removeFavorite(favorite_id) {
