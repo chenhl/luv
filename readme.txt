@@ -8,7 +8,9 @@ npm run build
 npm install -g terser
 terser 负责压缩js 
     terser --help
-    示例：
+    一：pc专用
+    terser src/js/p/header.js -o dist/js/p/header.min.js
+    二：m和pc共用
     terser src/js/js.js -o dist/js/js.min.js
     terser src/js/sharer.js -o dist/js/sharer.min.js
     terser src/js/product.js -o dist/js/product.min.js

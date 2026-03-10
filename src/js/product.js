@@ -1333,7 +1333,7 @@
                 mousewheel: {
                     invert: true,
                 },
-                // lazy: true,
+                lazy: false,
                 autoHeight: false,
                 allowTouchMove: false,
                 watchOverflow: true,
@@ -1341,7 +1341,7 @@
             // Main
             mainSwiper = new Swiper('#main-swiper-js', {
                 autoplay: false, // 确保无任何 autoplay 配置
-                // lazy: true,
+                lazy: false,
                 thumbs: {
                     swiper: thumbSwiper,
                 }
