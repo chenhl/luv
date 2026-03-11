@@ -885,11 +885,12 @@ function handleAddToCartClick(e) {
                 // update UI
                 var items_count = response.items_count;
                 $(".cart-item-count-js").text(items_count);
-
                 // close modal
-                var $modal = $('#productBottomSheet');
-                var modalInstance = bootstrap.Modal.getOrCreateInstance($modal[0]);
-                modalInstance.hide();
+                if (isMobile) {
+                    var $modal = $('#productBottomSheet');
+                    var modalInstance = bootstrap.Modal.getOrCreateInstance($modal[0]);
+                    modalInstance.hide();
+                }
             }
             // show Toast
             showToast(response.message, '#toast-js');
