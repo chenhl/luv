@@ -66,13 +66,13 @@ function updateCheckoutButton() {
     const currency = currency_info.code; //币种
 
     // 显示价格 i18n
-    $('#total-price-js').text(I18nHelper.formatCurrency(total, currency));
+    $('#total-price-js').text(I18nHelper.formatCurrency(total, currency)).data('grand-total', total);
     $('#checkout-count-js').text(checkedCount);
     $('#btn-checkout-js').prop('disabled', checkedCount === 0);
     //pc端独有 显示商品总价
     //===========
     if (!isMobile) {
-        $('#product-total-js').text(I18nHelper.formatCurrency(product_total, currency)); // 商品总价
+        $('#product-total-js').text(I18nHelper.formatCurrency(product_total, currency)).data('product-total', product_total); // 商品总价
     }
     // 同步全选按钮状态
     const allChecked = $('.item-checkbox-js').length > 0 && $checkedItems.length === $('.item-checkbox-js').length;
@@ -98,7 +98,7 @@ function paypalBuynowCreatePayment() {
                 label: 'buynow'
             },
             onClick: function () {
-                const total = parseFloat($('#total-price-js').text());
+                const total = parseFloat($('#total-price-js').data('grand-total'));
                 if (isNaN(total) || total <= 0) {
                     showToast(translations.itemRequired, '#toast-js');
                     return false;
