@@ -861,7 +861,9 @@ function handleAddToCartClick(e) {
         }
         self.prop('disabled', false);
         self.removeClass('opacity-50'); // Bootstrap class
-        showToast('Failed to obtain product information. Please refresh and try again.', '#toast-js');
+        if (isMobile) {
+            showToast('Failed to obtain product information. Please refresh and try again.', '#toast-js');
+        }
         return;
     }
     var remark = $("#customer-remark-js").val();

@@ -88,7 +88,7 @@ $(document).ready(function () {
         var currentCurrency = $('.currentCurrencySelect').val();
         // First: change currency via AJAX
         $.ajax({
-            url: "<?= Yii::$service->url->getUrl('cms/home/changecurrency') ?>?currency=" + currentCurrency,
+            url: settingUrl + "?currency=" + currentCurrency,
             async: false
         });
         // Then: redirect to new store/language
