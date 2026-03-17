@@ -530,6 +530,7 @@ window.AffiliateTracker = {
         TrackingPolicy.log('Sending affiliate click:', aff, payload);
 
         //fetch 在 IE11 不支持。如果你需要兼容 IE11，请改回 $.ajax 或加 polyfill。
+        //TODO 注：本地开发环境免费版servBay，不能配置跨域请求，所以可能无法上报
         fetch(this._config.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -611,7 +612,11 @@ window.PageTracker = {
         var payload = this._config.payload;
         payload.browser = this._getBrowserData();
         TrackingPolicy.log('Sending page view:', payload);
-
+        // ✅ 上海时区Asia/Shanghai的用户，不上报商品和搜索页
+        if (typeof payload.browser.timezone !== 'undefined' && payload.browser.timezone === 'Asia/Shanghai') {
+            return;
+        }
+        //TODO 注：本地开发环境免费版servBay，不能配置跨域请求，所以可能无法上报
         fetch(this._config.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -638,7 +643,7 @@ window.PageTracker = {
         if (typeof window.trace_config === 'undefined') {
             return;
         }
-        // ✅ 使用独立的自动化检测函数
+        // ✅ 使用独立的自动化检测函数 爬虫不上报商品和搜索页
         if (isLikelyAutomated()) {
             TrackingPolicy.log('Automated traffic detected, skipping tracking.');
             return;
@@ -944,10 +949,11 @@ $(function () {
                     $('#header-email-js').text(data.customer_email);
                     $('#header-login-js').addClass('d-none'); //hide login
                 }
+                //是否收藏product
                 if (data.favorite) {
                     $('#product-favorite-js').addClass('text-danger');
                 }
-                //pc端
+                //pc端收藏数量
                 if (data.favorite_product_count) {
                     $("#favorite-count-js").text(data.favorite_product_count);
                 }
@@ -1162,13 +1168,13 @@ window.SearchHistory = {
 };
 
 /**
-    * PromoBannerManager.js - 促销优惠券 Banner 管理器
-    * 功能：按区域请求并渲染促销 Banner，支持“今日不再显示”
-    * 
-    * 一：IIFE: “创建私有作用域 + 控制暴露接口”。
-    * 二：确保 依赖的全局函数 在 PromoBannerManager 初始化前已定义
-    * 如果未来升级到 ES6+，可以用 import/export 替代 IIFE，但核心思想（封装 + 依赖管理）永远不变
-    */
+* PromoBannerManager.js - 促销优惠券 Banner 管理器
+* 功能：按区域请求并渲染促销 Banner，支持“今日不再显示”
+* 
+* 一：IIFE: “创建私有作用域 + 控制暴露接口”。
+* 二：确保 依赖的全局函数 在 PromoBannerManager 初始化前已定义
+* 如果未来升级到 ES6+，可以用 import/export 替代 IIFE，但核心思想（封装 + 依赖管理）永远不变
+*/
 window.PromoBannerManager = (function () {
     'use strict';
     // === 配置（可外部覆盖）===
@@ -1241,7 +1247,7 @@ window.PromoBannerManager = (function () {
     function setCloseForToday(promoId) {
         const key = promoId + CONFIG.CLOSED_KEY_SUFFIX;
         const expiresAt = getEndOfDayTimestamp();
-        console.log('expiresAt', expiresAt);
+        // console.log('expiresAt', expiresAt);
         // 如果用户已同意 Cookie，使用 Cookie（可跨会话但限当天）
         if (TrackingPolicy.isAllowed) {
             setCookieTimestamp(key, 'true', expiresAt);
@@ -1286,12 +1292,12 @@ window.PromoBannerManager = (function () {
                 url: promoCouponConfig.couponClaimUrl,
                 success: function (data, textStatus) {
                     showToast(data.message, '#promo-toast-js');
-                    console.log('ajax success', data);
+                    // console.log('ajax success', data);
                     if (data.status == 'success') {
                         // 领取成功后，更新按钮状态
                         // $btn.prop('disabled', true).text(promoCouponConfig.translations.claimed); //领取成功后，按钮显示已领取
                         // 更新状态显示
-                        console.log('claim success');
+                        // console.log('claim success');
                         $btn.closest('.claim-status-js').html(`
                                 <span class="fw-bold text-success">${coupon_code}</span>
                                 <span class="badge bg-success">${promoCouponConfig.translations.claimed}</span>
