@@ -83,21 +83,43 @@ $(document).ready(function () {
     //3 ==================Cart=================
 
     //4 ================= Language/Currency Submit ==========
-    $('.lang_currency_submit').on('click', function () {
-        var changeStore = $('.currentLangSelect').val();
-        var currentCurrency = $('.currentCurrencySelect').val();
+    $('#lang-currency-submit-js').on('click', function () {
+        if ($(this).prop('disabled')) {
+            return;
+        }
+        //disable button
+        $(this).prop('disabled', true).text(settingTranslations.waitingText);
+
+        var selectedStore = $('#current-lang-select-js').val();
+        var selectedCurrency = $('#current-currency-select-js').val();
         // First: change currency via AJAX
         $.ajax({
-            url: settingUrl + "?currency=" + currentCurrency,
+            url: settingUrl + "?currency=" + selectedCurrency,
             async: false
         });
         // Then: redirect to new store/language
         var currentUrl = window.location.href;
-        var currentStore = $(".current_lang").val();
-        var redirectUrl = currentUrl.replace("://" + currentStore, "://" + changeStore);
+        // var currentStore = $(".current_lang").val();
+        var redirectUrl = currentUrl.replace("://" + currentStore, "://" + selectedStore);
         redirectUrl = redirectUrl.split('#')[0]; // remove hash
         window.location.href = redirectUrl;
     });
+
+    // $('.lang_currency_submit').on('click', function () {
+    //     var changeStore = $('.currentLangSelect').val();
+    //     var currentCurrency = $('.currentCurrencySelect').val();
+    //     // First: change currency via AJAX
+    //     $.ajax({
+    //         url: settingUrl + "?currency=" + currentCurrency,
+    //         async: false
+    //     });
+    //     // Then: redirect to new store/language
+    //     var currentUrl = window.location.href;
+    //     var currentStore = $(".current_lang").val();
+    //     var redirectUrl = currentUrl.replace("://" + currentStore, "://" + changeStore);
+    //     redirectUrl = redirectUrl.split('#')[0]; // remove hash
+    //     window.location.href = redirectUrl;
+    // });
 
     // // Sticky header on scroll up/down
     // let lastScrollTop = 0;
