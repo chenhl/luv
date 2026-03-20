@@ -152,7 +152,8 @@ function paypalBuynowCreatePayment() {
                             // console.log('本地订单处理失败:', orderData);
                         }
                     }
-                    actions.redirect(`${paypalFinishOrderUrl}?order_sn=${order_sn}`);
+                    // actions.redirect(`${paypalFinishOrderUrl}?order_sn=${order_sn}`);
+                    window.location.href = `${paypalFinishOrderUrl}?order_sn=${order_sn}`;
                     // window.location.href = paypalFinishOrderUrl + '?order_sn=' + encodeURIComponent(order_sn);
                 }).catch(function (error) {
                     alert(error);

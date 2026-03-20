@@ -1021,7 +1021,8 @@ function paypalButton() {
                         }
 
                         // const transaction = orderData.purchase_units[0].payments.captures[0];
-                        actions.redirect(`${paypalFinishOrderUrl}?order_sn=${order_sn}`);
+                        // actions.redirect(`${paypalFinishOrderUrl}?order_sn=${order_sn}`);
+                        window.location.href = `${paypalFinishOrderUrl}?order_sn=${order_sn}`;
                     })
                     .catch((error) => {
                         alert(error);

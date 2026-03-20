@@ -245,6 +245,21 @@ $accordion-body-padding-x: 0.5rem;
   }
 
 }
+// 分隔符
+.luv_divider {
+    align-items: center;
+    display: flex;
+    margin: 1rem 0;
+    text-align: center;
+}
+.luv_divider::before,
+.luv_divider::after {
+    background-color: #ddd;
+    content: "";
+    flex: 1;
+    height: 1px;
+    margin: 0 .675rem
+}
 //////////// Bottom Sheet start ////////////
 /* 自定义 Bottom Sheet 动画 */
 @keyframes slideUpIn {

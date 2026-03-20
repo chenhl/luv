@@ -136,7 +136,8 @@ function renderPayPalButtons() {
 
                     // const transaction = orderData.purchase_units[0].payments.captures[0];
                     // const order_sn = orderData.order_sn; // transaction.status;
-                    actions.redirect(`${finishPayUrl}?order_sn=${orderSn}`);
+                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSn}`);
+                    window.location.href = `${finishPayUrl}?order_sn=${orderSn}`;
                 })
                 .catch((error) => {
                     alert(error);
