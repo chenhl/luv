@@ -217,7 +217,7 @@ function renderPayPalCardFields() {
                     return order.id
                 })
                 .catch((error) => {
-                    alert('createOrder error: ' + error);
+                    alert(error);
                     // console.log('There has been a problem with your fetch operation:', error);
                 });
         },
@@ -256,7 +256,7 @@ function renderPayPalCardFields() {
                     window.location.href = `${finishPayUrl}?order_sn=${orderSN}`;
                 })
                 .catch((error) => {
-                    alert('onApprove error: ' + error);
+                    alert(error);
                     // console.log('There has been a problem with your fetch operation:', error);
                     //Restart the payment
                     // return actions.restart();
