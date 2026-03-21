@@ -138,14 +138,14 @@ function renderPayPalButtons() {
                             }
                         } else { //local Exception: paypal正常支付了但更新本地库失败，需紧急处理
                             alert(orderData.message);
-                            // actions.redirect(`${failPayUrl}?order_sn=${orderSn}&error=${orderData.message}`);
+                            // actions.redirect(`${failPayUrl}?order_sn=${orderSN}&error=${orderData.message}`);
                         }
                     }
 
                     // const transaction = orderData.purchase_units[0].payments.captures[0];
                     // const order_sn = orderData.order_sn; // transaction.status;
-                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSn}`);
-                    window.location.href = `${finishPayUrl}?order_sn=${orderSn}`;
+                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSN}`);
+                    window.location.href = `${finishPayUrl}?order_sn=${orderSN}`;
                 })
                 .catch((error) => {
                     alert(error);
@@ -246,14 +246,14 @@ function renderPayPalCardFields() {
                             }
                         } else { //local Exception: paypal正常支付了但更新本地库失败，需紧急处理
                             alert(orderData.message);
-                            // actions.redirect(`${failPayUrl}?order_sn=${orderSn}&error=${orderData.message}`);
+                            // actions.redirect(`${failPayUrl}?order_sn=${orderSN}&error=${orderData.message}`);
                         }
                     }
 
                     // const transaction = orderData.purchase_units[0].payments.captures[0];
                     // const order_sn = orderData.order_sn; // transaction.status;
-                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSn}`);
-                    window.location.href = `${finishPayUrl}?order_sn=${orderSn}`;
+                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSN}`);
+                    window.location.href = `${finishPayUrl}?order_sn=${orderSN}`;
                 })
                 .catch((error) => {
                     alert('onApprove error: ' + error);
@@ -544,7 +544,7 @@ function setupUseePay() {
                 async: false, // 同步请求，等待服务器响应
                 method: 'POST',
                 data: {
-                    order_sn: orderSn,
+                    order_sn: orderSN,
                     // =======客户端 浏览器browser数据 start
                     deviceChannel: 'browser',
                     acceptHeader: navigator.userAgent,
