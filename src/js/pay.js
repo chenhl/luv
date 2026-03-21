@@ -426,7 +426,8 @@ function renderPayPalCardFields() {
             $btn.prop("disabled", true)
                 .data("processing", true)
                 .html('<span class="spinner-border spinner-border-sm" role="status"></span> ' + translations.restIng);
-
+            // 清空提示信息    
+            $('#paypal-card-result-message-js').empty();
             // 执行支付提交
             cardField.submit({
                 // billingAddress: {
