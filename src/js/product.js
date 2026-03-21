@@ -1030,11 +1030,30 @@ function paypalButton() {
                         // captue如果发生错误，全部重启支付：现在改成只有INSTRUMENT_DECLINED时才重启
                         // return actions.restart();
                     });
+            },
+            onError: (error) => {
+                // alert(error);
+                //处理错误信息
+                const errDetail = error.data?.body?.details?.[0];
+                if (errDetail) {
+                    alert(errDetail.description);
+                } else {
+                    const errorMessage = error.data?.body?.message;
+                    if (errorMessage) {
+                        alert(errorMessage);
+                    } else {
+                        alert(translations.sysError);
+                    }
+                }
+                //错误信息上报
+                fetch(paypalErrorReportUrl, {
+                    method: "post",
+                    body: JSON.stringify(error),
+                    headers: {
+                        'content-type': 'application/json'
+                    }
+                }).then((response) => { });
             }
-            // ,
-            // onError: (error) => {
-            //     // alert(error);
-            // }
 
         });
         // Check if the button is eligible

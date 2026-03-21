@@ -119,6 +119,9 @@ function paypalBuynowCreatePayment() {
                 }).then(function (order) {
                     if (order.id === '-1') throw new Error(order.message);
                     return order.id;
+                }).catch(function (error) {
+                    alert(error);
+                    // console.log('There has been a problem with your fetch operation:', error);
                 });
             },
             onCancel: (data) => {
@@ -162,8 +165,28 @@ function paypalBuynowCreatePayment() {
                     // return actions.restart();
                 });
             },
-            onError: function (err) {
-                alert(err.toString());
+            onError: function (error) {
+                // alert(err.toString());
+                //处理错误信息
+                const errDetail = error.data?.body?.details?.[0];
+                if (errDetail) {
+                    alert(errDetail.description);
+                } else {
+                    const errorMessage = error.data?.body?.message;
+                    if (errorMessage) {
+                        alert(errorMessage);
+                    } else {
+                        alert(translations.sysError);
+                    }
+                }
+                //错误信息上报
+                fetch(paypalErrorReportUrl, {
+                    method: "post",
+                    body: JSON.stringify(error),
+                    headers: {
+                        'content-type': 'application/json'
+                    }
+                }).then((response) => { });
             }
         });
 

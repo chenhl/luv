@@ -37,6 +37,7 @@ const PaymentManager = {
         window.PaymentSDKs.activeMethod = method;
     }
 };
+
 // ========== PayPal 支付逻辑 ==========
 function initPayPal() {
     // 获取PayPal整个容器
@@ -49,13 +50,15 @@ function initPayPal() {
         // 加载中
         window.paypalScriptLoading = true;
         //开始加载并渲染button
-        webLoadScript(payment_ui_configs.payment_paypal_sdk.paypalSdkUrl, () => {
+        webLoadScript(payment_ui_configs.payment_paypal_sdk.paypalSdkUrl + '&components=buttons,card-fields', () => {
             window.paypalScriptLoading = false;
             renderPayPalButtons();
+            renderPayPalCardFields();
         });
     } else { //sdk已初始化
         // 开始渲染button
         renderPayPalButtons();
+        renderPayPalCardFields();
     }
     container.dataset.initialized = '1';
 }
@@ -65,8 +68,14 @@ function renderPayPalButtons() {
     const container = document.getElementById('paypal-buttons-container');
     //2 如果已渲染，直接返回
     if (container.dataset.rendered === '1') return;
-    //3 创建button
+    //3 创建button https://developer.paypal.com/sdk/js/reference/#buttons
     paypal.Buttons({
+        style: {
+            // height:40,// 默认 25-55 之间，
+            // disableMaxHeight:true,// 设置true，就可以任意修改上面的height
+            // max-width:750,// 默认最大750，
+            // disableMaxWidth:true, // 设置true，就可以任意修改上面的max-width
+        },
         createOrder: (data, actions) => {
             var data_params = {
                 order_sn: orderSN
@@ -105,7 +114,6 @@ function renderPayPalButtons() {
             // console.log('PayPal支付已取消:', data);
         },
         onApprove: (data, actions) => {
-
             return fetch(payment_ui_configs.payment_paypal_sdk.paypalCaptureOrderUrl, {
                 method: "post",
                 body: JSON.stringify(data),
@@ -145,16 +153,320 @@ function renderPayPalButtons() {
                     //Restart the payment
                     // return actions.restart();
                 });
+        },
+        onError: (error) => {
+            //处理错误信息
+            const errDetail = error.data?.body?.details?.[0];
+            if (errDetail) {
+                alert(errDetail.description);
+            } else {
+                const errorMessage = error.data?.body?.message;
+                if (errorMessage) {
+                    alert(errorMessage);
+                } else {
+                    alert(translations.sysError);
+                }
+            }
+            //错误信息上报
+            fetch(payment_ui_configs.payment_paypal_sdk.paypalErrorReportUrl, {
+                method: "post",
+                body: JSON.stringify(error),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            }).then((response) => { });
         }
-        // ,
-        // onError: (error) => {
-        //     // alert(error);
-        // }
     }).render('#paypal-buttons-container');
 
     //4 标记已渲染
     container.dataset.rendered = '1';
 }
+
+function renderPayPalCardFields() {
+    $('#paypal-card-result-message-js').empty();
+    //1 获取paypal card的容器
+    const container = document.getElementById('card-form');
+    //2 如果已渲染，直接返回
+    if (container.dataset.rendered === '1') return;
+    //3 创建cardField
+    const cardField = paypal.CardFields({
+        createOrder: (data, actions) => {
+            var data_params = {
+                order_sn: orderSN
+            };
+            return fetch(payment_ui_configs.payment_paypal_sdk.paypalCardCreateOrderUrl, {
+                method: "post",
+                body: JSON.stringify(data_params),
+                // body: postData,
+                headers: {
+                    'content-type': 'application/json'
+                }
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then((order) => {
+                    if (order.id == '-1') {
+                        // alert(order.message);
+                        throw new Error(order.message);
+                        // return false;
+                    }
+                    return order.id
+                })
+                .catch((error) => {
+                    alert('createOrder error: ' + error);
+                    // console.log('There has been a problem with your fetch operation:', error);
+                });
+        },
+        onApprove: (data, actions) => {
+            return fetch(payment_ui_configs.payment_paypal_sdk.paypalCardCaptureOrderUrl, {
+                method: "post",
+                body: JSON.stringify(data),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then((orderData) => {
+                    if (orderData.order_sn == '-1') {
+                        if (!orderData.is_local) { // paypal HttpException
+                            if (orderData.error_issue === 'INSTRUMENT_DECLINED') { //INSTRUMENT_DECLINED
+                                alert(orderData.message);
+                                return actions.restart();
+                            } else {
+                                throw new Error(orderData.message);
+                            }
+                        } else { //local Exception: paypal正常支付了但更新本地库失败，需紧急处理
+                            alert(orderData.message);
+                            // actions.redirect(`${failPayUrl}?order_sn=${orderSn}&error=${orderData.message}`);
+                        }
+                    }
+
+                    // const transaction = orderData.purchase_units[0].payments.captures[0];
+                    // const order_sn = orderData.order_sn; // transaction.status;
+                    // actions.redirect(`${finishPayUrl}?order_sn=${orderSn}`);
+                    window.location.href = `${finishPayUrl}?order_sn=${orderSn}`;
+                })
+                .catch((error) => {
+                    alert('onApprove error: ' + error);
+                    // console.log('There has been a problem with your fetch operation:', error);
+                    //Restart the payment
+                    // return actions.restart();
+                });
+        },
+        style: {
+            input: {
+                "font-size": "16px",
+                "font-family": "courier, monospace",
+                "font-weight": "lighter",
+                color: "#ccc",
+            },
+            ".invalid": {
+                color: "purple"
+            },
+        },
+        onError: (error) => {
+            // Handle the error object
+            const errDetail = error.data?.body?.details?.[0];
+            if (errDetail) {
+                $('#paypal-card-result-message-js').empty().text(errDetail.description);
+            } else {
+                const errorMessage = error.data?.body?.message;
+                if (errorMessage) {
+                    $('#paypal-card-result-message-js').empty().text(errorMessage);
+                } else {
+                    $('#paypal-card-result-message-js').empty().text(translations.sysError);
+                }
+            }
+            // Report error to server
+            fetch(payment_ui_configs.payment_paypal_sdk.paypalErrorReportUrl, {
+                method: "post",
+                body: JSON.stringify(error),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            }).then((response) => { });
+        },
+        // onCancel: () => { //不知什么时候触发
+        //     console.log("Your order was cancelled due to incomplete verification");
+        // },
+    });
+    if (cardField.isEligible()) {
+        // 基于系统自有的billingAddress的name
+        // const nameField = cardField.NameField({
+        //     style: {
+        //         input: {
+        //             color: "blue"
+        //         },
+        //         ".invalid": {
+        //             color: "purple"
+        //         }
+        //     },
+        // });
+        // nameField.render("#card-name-field-container");
+
+        const numberField = cardField.NumberField({
+            style: {
+                input: {
+                    color: "blue"
+                }
+            },
+            inputEvents: {
+                onChange: (data) => {
+                    // Do something when an input changes
+                },
+                onFocus: (event) => {
+                    // console.log("returns a stateObject", event);
+                    $('#paypal-card-result-message-js').empty();
+                },
+                onBlur: (data) => {
+                    // Do something when a field loses focus
+                },
+                onInputSubmitRequest: (data) => {
+                    if (data.isFormValid) {
+                        // Submit the card form for the payer
+                    } else {
+                        // Inform payer that some fields aren't valid
+                    }
+                }
+            },
+        });
+        numberField.render("#card-number-field-container");
+
+        const cvvField = cardField.CVVField({
+            style: {
+                input: {
+                    color: "blue"
+                }
+            },
+            inputEvents: {
+                onChange: (data) => {
+                    // Do something when an input changes
+                },
+                onFocus: (event) => {
+                    // console.log("returns a stateObject", event);
+                    $('#paypal-card-result-message-js').empty();
+                },
+                onBlur: (data) => {
+                    // Do something when a field loses focus
+                },
+                onInputSubmitRequest: (data) => {
+                    if (data.isFormValid) {
+                        // Submit the card form for the payer
+                    } else {
+                        // Inform payer that some fields aren't valid
+                    }
+                }
+            },
+        });
+        cvvField.render("#card-cvv-field-container");
+
+        const expiryField = cardField.ExpiryField({
+            style: {
+                input: {
+                    color: "blue"
+                }
+            },
+            inputEvents: {
+                onChange: (data) => {
+                    // Do something when an input changes
+                },
+                onFocus: (event) => {
+                    // console.log("returns a stateObject", event);
+                    $('#paypal-card-result-message-js').empty();
+                },
+                onBlur: (data) => {
+                    // Do something when a field loses focus
+                },
+                onInputSubmitRequest: (data) => {
+                    if (data.isFormValid) {
+                        // Submit the card form for the payer
+                    } else {
+                        // Inform payer that some fields aren't valid
+                    }
+                }
+            },
+        });
+        expiryField.render("#card-expiry-field-container");
+
+        // // Add click listener to submit button and call the submit function on the CardField component
+        // document
+        //     .getElementById("card-field-submit-button")
+        //     .addEventListener("click", () => {
+        //         cardField
+        //             .submit({
+        //                 // 基于系统自有的billingAddress
+        //                 billingAddress: {
+        //                     addressLine1: billingAddress.street1,
+        //                     addressLine2: billingAddress.street2,
+        //                     adminArea1: billingAddress.state,
+        //                     adminArea2: billingAddress.city,
+        //                     countryCode: billingAddress.country,
+        //                     postalCode: billingAddress.zip,
+        //                 },
+        //             })
+        //             .then(() => {
+        //                 // submit successful
+        //             });
+        //     });
+        $("#card-field-submit-button").on("click", function () {
+            const $btn = $(this); // jQuery 对象，便于操作
+            // 防重复点击：按钮已禁用或正在处理中则直接返回
+            if ($btn.prop("disabled") || $btn.data("processing")) return;
+            // 保存原始文本，禁用按钮并更新状态
+            const originalText = $btn.html();
+            $btn.prop("disabled", true)
+                .data("processing", true)
+                .html('<span class="spinner-border spinner-border-sm" role="status"></span> ' + translations.restIng);
+
+            // 执行支付提交
+            cardField.submit({
+                // billingAddress: {
+                //     addressLine1: billingAddress.street1,
+                //     addressLine2: billingAddress.street2,
+                //     adminArea1: billingAddress.state,
+                //     adminArea2: billingAddress.city,
+                //     countryCode: billingAddress.country,
+                //     postalCode: billingAddress.zip,
+                // }
+            })
+                .then(() => {
+                    // ✅ 提交成功：可跳转或提示（根据业务逻辑）
+                    // window.location.href = "/success";
+                })
+                .catch(error => {
+                    // 上面的onError回调中会返回错误信息，这里不需要处理
+
+                    // console.error("cardField.submit error: " + error);
+                    // ❌ 失败提示（示例）
+                    // alert("cardField.submit error: " + error);
+                })
+                .finally(() => {
+                    // 无论成功/失败，恢复按钮状态
+                    $btn.prop("disabled", false)
+                        .removeData("processing")
+                        .html(originalText);
+                });
+        });
+        $('#card-field-submit-button').removeClass('d-none');
+        $('#paypal-card-or-js').removeClass('d-none');
+    } else {
+        $('#card-field-submit-button').addClass('d-none');
+        $('#paypal-card-or-js').addClass('d-none');
+    }
+    //4 标记已渲染
+    container.dataset.rendered = '1';
+}
+
+
 // ========== UseePay 支付逻辑 ==========
 function initUseePay() {
     //useepay 只提供form表单，不提供button按钮
@@ -324,6 +636,8 @@ function loadBillingAddress() {
             // 从返回的 HTML 中提取选中地址的信息
             $('#current-billing-address-name-js').text(data.title);
             $('#current-billing-address-full-js').text(data.full);
+            // billingAddress = data.address;
+            // console.log(billingAddress);
         })
         .fail(function () {
             alert('Failed to load address list');
