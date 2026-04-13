@@ -769,7 +769,7 @@ function handleFavoriteClickA(e) {
     })
         .done(function (response) {
             loginStatus = response.loginStatus;
-            if (!loginStatus) {
+            if (!loginStatus) { //TODO:显示登录页面Modal
                 window.location.href = memberLoginUrl;
                 return;
             }
@@ -1421,6 +1421,30 @@ $(function () {
     }
     // click add to cart button
     $('#product-add-cart-js').click(handleAddToCartClick);
+    // see more / less 目前只有移动端有使用
+    $('#btn-toggle-desc-js').on('click', function () {
+        const $container = $('#product-desc-js');
+        const $btnText = $(this).find('.btn-text');
+
+        if ($container.hasClass('collapsed')) {
+            // 执行展开
+            $container.removeClass('collapsed').addClass('expanded');
+            $btnText.text(translations.SeeLess);
+            $(this).attr('aria-expanded', 'true');
+            // $icon.addClass('expanded-icon');
+        } else {
+            // 执行收缩
+            $container.removeClass('expanded').addClass('collapsed');
+            $btnText.text(translations.SeeMore);
+            $(this).attr('aria-expanded', 'false');
+            // $icon.removeClass('expanded-icon');
+
+            // 移动端体验优化：收起后自动回滚到描述顶部，防止迷失位置
+            $('html, body').animate({
+                scrollTop: $container.offset().top - 120
+            }, 300);
+        }
+    });
     //################# 分享 start #################
     //affiliate-link-url-copy-js
     $(document).on('click', '.btn-copy-link-js', function (e) {
