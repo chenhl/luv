@@ -66,3 +66,7 @@ npm publish
 # token update
 npm config set //registry.npmjs.org/:_authToken=YOUR_TOKEN_HERE
 -----------------------------
+2FA
+key name: luv-assets
+设备：52480721@qq.com
+
