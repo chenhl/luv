@@ -187,7 +187,7 @@ window.TrackingPolicy = {
 //set cookie with timestamp
 function setCookieTimestamp(name, value, expiresAt) {
     const expires = new Date(expiresAt * 1000);
-    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; Secure; SameSite=Lax`;
 }
 //set cookie with days
 function setCookie(name, value, days) {
@@ -196,7 +196,7 @@ function setCookie(name, value, days) {
     var date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     expires = '; expires=' + date.toUTCString();
-    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; Secure; SameSite=Lax';
     // const Days = 30;
     // const exp = new Date();
     // exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000);
@@ -1241,7 +1241,7 @@ window.PromoBannerManager = (function () {
 
     function setCookieTimestamp(name, value, expiresAt) {
         const expires = new Date(expiresAt * 1000);
-        document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+        document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; Secure; SameSite=Lax`;
     }
     // 设置“今日不再显示”的标记
     function setCloseForToday(promoId) {
